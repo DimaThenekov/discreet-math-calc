@@ -25,12 +25,24 @@ export class Byte {
     }
   }
 
-  get highHalf(): halfRawByte {
-    return this.data.slice(0, Byte.LENGTH / 2) as halfRawByte
+  get highHalf(): number {
+    return this.sliceNumber(0, Byte.LENGTH / 2)
   }
 
-  get lowHalf(): halfRawByte {
-    return this.data.slice(Byte.LENGTH / 2) as halfRawByte
+  get highHalfToByte() {
+    return this.sliceToByte(0, Byte.LENGTH / 2, true)
+  }
+
+  get lowHalf(): number {
+    return this.sliceNumber(Byte.LENGTH / 2)
+  }
+
+  get lowHalfToByte() {
+    return this.sliceToByte(Byte.LENGTH / 2, Byte.LENGTH, true)
+  }
+
+  swap() {
+    return new Byte((this.lowHalf << (Byte.LENGTH / 2) | this.highHalfToByte.number))
   }
 
   private isRawByte(data: number[]): data is RawByte {
@@ -83,6 +95,18 @@ export class Byte {
   get number() {
     return Byte.toNumber(this.bin)
   }
+ 
+  get absolute() {
+    if (this.sign) {
+      return 2 ** Byte.LENGTH - this.number
+    }
+
+    return this.number
+  }
+
+  get absoluteToByte() {
+    return new Byte(this.absolute)
+  }
 
   get bin() {
     return this.data.join("");
@@ -103,8 +127,8 @@ export class Byte {
     return (this.number & (((Byte.MAX >> (start + endShift)) << (endShift)))) >> (shouldEndShift ? endShift : 0)
   }
 
-  sliceToByte(start: number, end: number = Byte.LENGTH) {
-    return new Byte(this.sliceNumber(start, end))
+  sliceToByte(start: number, end: number = Byte.LENGTH, shouldEndShift = false) {
+    return new Byte(this.sliceNumber(start, end, shouldEndShift))
   }
 
   /** Numbering start from the least significant bit (2**0) */
