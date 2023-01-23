@@ -98,7 +98,7 @@ export class Byte {
  
   get absolute() {
     if (this.sign) {
-      return 2 ** Byte.LENGTH - this.number
+      return (2 ** Byte.LENGTH) - this.number
     }
 
     return this.number
@@ -117,7 +117,7 @@ export class Byte {
   }
 
   set sign(sign: Bit) {
-    this.setBit(0, sign)
+    this.setBit(7, sign)
   }
 
   sliceNumber(start: number, end: number = Byte.LENGTH, shouldEndShift = false): number {
