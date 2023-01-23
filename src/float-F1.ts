@@ -1,72 +1,117 @@
 import { Byte, Bit } from "./byte";
-import { Mantissa } from "./mantissa";
+import { F1Mantissa, F2Mantissa, Mantissa, TMantissaFormat } from "./mantissa";
 
+type TFormat = {
+  characteristicOffset: number
+  mantissa: TMantissaFormat,
+  hiddenOne: boolean
+}
+
+const F1: TFormat = {
+  characteristicOffset: 64,
+  mantissa: F1Mantissa,
+  hiddenOne: false
+}
+
+const F2: TFormat = {
+  characteristicOffset: 128,
+  mantissa: F2Mantissa,
+  hiddenOne: true
+}
 
 class FloatRegister /* implements IRegister */ {
-  private _characteristicAndSign: Byte = new Byte(0);
+  // @ts-ignore
+  private isNegative: Bit // 1 means negative
+  // @ts-ignore
+  private characteristic: number
+  
+  public mantissa: Mantissa
 
   get sign(): Bit {
-    return this._characteristicAndSign.sign
+    return this.isNegative
   }
 
-  get characteristic(): number {
-    return this._characteristicAndSign.sliceNumber(1)
+  get exponent(): number {
+    return this.characteristic - this.FORMAT.characteristicOffset
   }
 
-  constructor(public mantissa: Mantissa, exponent: number, sign: Bit = 0) {
-    
-    this.characteristic = exponent;
+  get formattedBin() {
+    return `${this.isNegative} ${new Byte(this.characteristic).bin} ${this.mantissa.number.toString(2)}`
+  }
+
+  constructor(mantissa: number, exponent: number, sign: Bit = 0, public FORMAT: TFormat = F1) {
+    this.mantissa = new Mantissa(mantissa, this.FORMAT.mantissa)
+    this.exponent = exponent;
     this.sign = sign
   }
 
-  private set characteristic(exponent: number) {
-    const sign = this.sign
-    const characteristic = new Byte(exponent + 64)
-    characteristic.sign = sign
-    this._characteristicAndSign = characteristic
+  private set exponent(exponent: number) {
+    this.characteristic = exponent + this.FORMAT.characteristicOffset
   }
 
   private set sign(sign: Bit) {
-    this._characteristicAndSign.sign = sign
+    this.isNegative = sign
   }
 
   static add(a: FloatRegister, b: FloatRegister) {
+    console.log("adding")
     const difference = a.characteristic - b.characteristic
-    console.log(`difference is ${difference} = ${a.characteristic} - ${b.characteristic}`)
+    console.log(`exponent difference is ${difference} = ${a.characteristic} - ${b.characteristic}`)
 
     if (difference < 0)  {
-      console.log("below zero")
+      console.log("below zero; shifting a")
       for (let i = 0; i < Math.abs(difference); i++) {
-        a.mantissa.shiftRight()
+        a.mantissa.shiftRight(+a.FORMAT.hiddenOne)
       }
+
+      console.log("a mantissa shifted", a.mantissa.raw)
     } else {
-      console.log("equal or above zero")
+      console.log("equal or above zero; shifting b")
       for (let i = 0; i < difference; i++) {
         b.mantissa.shiftRight()
       }
+
+      console.log("b mantissa shifted", b.mantissa.raw)
     }
 
+    console.log()
+    console.log("performing addition")
+    console.log()
+
+    console.log("a mantissa    ", a.mantissa.raw)
+    console.log("b mantissa    ", b.mantissa.raw)
+ 
     if (a.sign == b.sign) {
+      console.log(`sing are equal: a --- b   ${a.sign} --- ${b.sign}`)
       a.mantissa.add(b.mantissa)
     } else {
+      console.log(`sing are different: a --- b   ${a.sign} --- ${b.sign}`)
       const carryOut = a.mantissa.subtract(b.mantissa)
       a.sign = carryOut;
+      console.log(`result is ${carryOut ? "negative" : "positive"}`)
     }
 
+    console.log("result before normalization", a.formattedBin)
     const correction = a.mantissa.normalize()
     a.characteristic = a.characteristic - correction
+    console.log("result after normalization", a.formattedBin)
+
 
   }
 }
 // 0xf05
 // 0x005
 
-const a = new FloatRegister(new Mantissa(0x105), 2)
-const b = new FloatRegister(new Mantissa(0x724), 1)
+const a = new FloatRegister(0b0110, 0, 0, F2)
+const b = new FloatRegister(0b1, 0, 0, F2)
+// const a = new FloatRegister(0b1, 0, 0, F2)
+// const b = new FloatRegister(0b1, 1, 0, F2)
+
 
 FloatRegister.add(a, b)
 
-console.log(a.mantissa.number.toString(16), a.characteristic)
+console.log(a.formattedBin)
+
 
 
 

@@ -1,111 +1,123 @@
 import { Bit, Byte } from "./byte";
+import { Register } from "./int16";
 
 type TRawMantissaTuple = [Byte, Byte]
 
-export class Mantissa {
-  static readonly HALF_BYTES_USED = 3
+export type TMantissaFormat = {
+  bitsUsed: number
+  digitWidth: number
+}
 
-  highByte: Byte
-  lowByte: Byte
+export const F1Mantissa: TMantissaFormat = {
+  bitsUsed: 12,
+  digitWidth: 4
+}
+
+export const F2Mantissa: TMantissaFormat = {
+  bitsUsed: 11,
+  digitWidth: 1
+}
+
+export class Mantissa {
+  
+  private data: Register;
+  private readonly ZERO_TRAIL_WIDTH: number
 
   get number() {
-    return (this.highByte.number << 4) + this.lowByte.highHalfToByte.number
+    return this.data.number >> this.ZERO_TRAIL_WIDTH
   }
 
-  constructor(number: number) {
-    const raw = Mantissa.parseHexDigits(Mantissa.normalize(number))
-    console.log(raw[0].bin, raw[1].bin)
-    this.highByte = raw[0]
-    this.lowByte = raw[1]
+  get raw() {
+    return this.data.formattedBin
   }
 
-  shiftRight() {
-    const lowHalf = this.highByte.lowHalfToByte
-    this.highByte = this.highByte.highHalfToByte
-    this.lowByte = lowHalf.swap()
+  constructor(number: number, public readonly FORMAT: TMantissaFormat = F1Mantissa) {
+    this.ZERO_TRAIL_WIDTH = Register.WIDTH - this.FORMAT.bitsUsed
+    const normalized = Mantissa.normalize(number, FORMAT) << this.ZERO_TRAIL_WIDTH
+    this.data = new Register(normalized)
+  }
+
+  shiftRight(fill = 0) {
+    console.log("shifting right")
+
+    const digitWidth = this.FORMAT.digitWidth
+    // ZERO_TRAIL_WIDTH is added to zero most right digit
+    for(let i = 0; i < digitWidth + this.ZERO_TRAIL_WIDTH; i++) {
+      this.data.shiftRight(0)
+    }
+
+    for (let i = 0; i < this.ZERO_TRAIL_WIDTH; i++) {
+      this.data.shiftLeft()
+    }
+
     return this
   }
 
   shiftLeft() {
-    const lowHalf = this.highByte.lowHalf
-    this.highByte = new Byte((lowHalf << 4) | this.lowByte.highHalfToByte.number)
-    this.lowByte = new Byte(0)
+    for (let i = 0; i < this.FORMAT.digitWidth; i++) {
+      this.data.shiftLeft()
+    }
 
     return this
   }
 
-  private static parseHexDigits(number: number): TRawMantissaTuple {
-    const mantissaBytes: Byte[] = []
-    const mask = 0xf
+  static normalize(number: number, format: TMantissaFormat): number {
+    const digitsAmount = (format.bitsUsed / format.digitWidth) - 1
+    const mask = parseInt("1".repeat(format.digitWidth), 2) << (format.digitWidth * (digitsAmount))
 
-    for (let i = 0; i < Mantissa.HALF_BYTES_USED; i++) {
-      const mantissaShifted = number >> (4*i)
-
-      const digit = mantissaShifted & mask
-
-      const isEven = i % 2 == 0
-      const byteContent = digit << (4 * +isEven)
-      const currentByte = isEven ? mantissaBytes.shift() : null
-
-      const bytePrepared = new Byte(byteContent | (currentByte?.number ?? 0))
-      mantissaBytes.unshift(bytePrepared)
-    }
-
-    return mantissaBytes as TRawMantissaTuple
-  }
-
-  static normalize(number: number): number {
-    const mask = 0xf00
-    for (let i = 0; i < Mantissa.HALF_BYTES_USED; i++) {
+    for (let i = 0; i < digitsAmount; i++) {
       if (number & mask) {
         break;
       }
+      // console.log("number", number.toString(2))
 
-      number = number << 4
+      number = number << format.digitWidth
     }
 
     return number
   }
 
   isRightDenormalized() {
-    return this.number != Mantissa.normalize(this.number)
+    return this.number != Mantissa.normalize(this.number, this.FORMAT)
   }
 
   normalize(): number {
     let count = 0
-
+    console.log("normalizing")
     while (this.isRightDenormalized()) {
-      console.log(this.highByte.bin, this.lowByte.bin, this.number)
       this.shiftLeft()
       count++
     }
+
+    console.log("count", count)
 
     return count
    }
 
   add(mantissa: Mantissa): Bit {
-    const [carryIn, lowByte] = this.lowByte.add(mantissa.lowByte);
-    const [carryOut, highByte] = this.highByte.add(mantissa.highByte, carryIn)
-
-
-    this.lowByte = lowByte
-    this.highByte = highByte
-
-    return carryOut
+    return this.data.add(mantissa.data)
   }
 
   subtract(mantissa: Mantissa): Bit {
-    const [carryIn, lowByte] = this.lowByte.subtract(mantissa.lowByte);
-    const [carryOut, highByte] = this.highByte.subtract(mantissa.highByte, carryIn)
+    console.log(`subtracting ${this.data.number.toString(16)} - ${mantissa.data.number.toString(16)}`)
+    const carryOut = this.data.subtract(mantissa.data)
+    console.log("mantissa right after subtraction", this.number.toString(16))
     
     if (carryOut) {
-      this.lowByte = lowByte.absoluteToByte
-      this.highByte = highByte.absoluteToByte
-    } else {
-      this.lowByte = lowByte
-      this.highByte = highByte
+      this.data = new Register(Math.abs(this.data.numberSigned))
     }
 
     return carryOut
   }
 }
+
+// const a = new Mantissa(0xf05)
+// const b = new Mantissa(0x5)
+// const f = new Mantissa(0b0110, F2Mantissa)
+// const x = new Mantissa(0b1, F2Mantissa)
+
+// console.log(a.raw)
+// console.log(b.raw)
+// console.log(f.raw)
+// console.log(x.raw)
+

@@ -22,6 +22,8 @@ export class Register implements IRegister {
   //@ts-ignore
   private highByte: Byte;
 
+  static WIDTH = Byte.LENGTH * 2
+
   constructor(initialContent: number | string) {
     this.data = initialContent;
   }
@@ -40,6 +42,10 @@ export class Register implements IRegister {
     }
 
     return this.number;
+  }
+
+  get width() {
+    return Register.WIDTH
   }
 
   get formattedBin() {
@@ -66,11 +72,13 @@ export class Register implements IRegister {
   }
 
   add(reg: Register) {
-    const [carryOut, lowByte] = this.lowByte.add(reg.lowByte);
-    const [_, highByte] = this.highByte.add(reg.highByte, carryOut);
+    const [carryOutIntermediate, lowByte] = this.lowByte.add(reg.lowByte);
+    const [carryOut, highByte] = this.highByte.add(reg.highByte, carryOutIntermediate);
 
     this.lowByte = lowByte;
     this.highByte = highByte;
+
+    return carryOut
   }
 
   addHigh(byte: Byte) {
@@ -79,11 +87,12 @@ export class Register implements IRegister {
   }
 
   subtract(reg: Register) {
-    const [carryOut, lowByte] = this.lowByte.subtract(reg.lowByte);
-    const [_, highByte] = this.highByte.subtract(reg.highByte, carryOut)
+    const [carryOutIntermediate, lowByte] = this.lowByte.subtract(reg.lowByte);
+    const [carryOut, highByte] = this.highByte.subtract(reg.highByte, carryOutIntermediate)
     
     this.lowByte = lowByte
     this.highByte = highByte
+    return carryOut
   }
 
   subtractHigh(byte: Byte) {
@@ -231,7 +240,7 @@ export class Register implements IRegister {
     
     // start division
     for (let i = 0; i < Byte.LENGTH - 1; i++) {
-      console.log(`------------step ${i+1}------------`)
+      console.log(`------------step ${i+2}------------`)
       // if equal -> subtract
       // if not -> add
       currentReminder.shiftLeft()
@@ -239,6 +248,7 @@ export class Register implements IRegister {
       
       if (currentReminder.sign == divider.sign) {
         console.log("signs are equal; subtracting")
+        console.log("divider", new Byte(256 - divider.lowByte.number).bin)
         currentReminder.subtractHigh(divider.lowByte)
       } else {
         console.log("signs are different; adding")
@@ -279,7 +289,7 @@ export class Register implements IRegister {
     } else { 
       // add divider with low byte of dividend
       currentReminder.add(divider);
-      console.log(`1. ${currentReminder.formattedBin}`)
+      console.log(`trial subtraction ${currentReminder.formattedBin}`)
       // left shift result by 1 bit
       currentReminder.shiftLeft()
       console.log(`result shifted ${currentReminder.formattedBin}`)
@@ -298,15 +308,16 @@ export class Register implements IRegister {
   }
 }
 
-const testRegister = new Register(3338);
-// testRegister.add(new Register(88))
+// const testRegister = new Register(-1916);
+// // testRegister.add(new Register(88))
+// // const testRegister = new Register(-88)
 
-// const result = Register.multiply(testRegister, new Register(36));
+// // const result = Register.multiply(testRegister, new Register(36));
 
-const test = new Register(-33);
-const [currentReminder, reminder] = Register.divide(testRegister, test)
-console.log(`result: ${currentReminder.formattedBin}`)
-Register.printBeauty(reminder, "reminder")
+// const test = new Register(26);
+// const [result, reminder] = Register.divide(testRegister, test)
+//   Register.printBeauty(result, "result")
+// Register.printBeauty(reminder, "reminder")
 
 
 
