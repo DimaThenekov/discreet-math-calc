@@ -50,7 +50,10 @@ class FloatRegister /* implements IRegister */ {
     this.isNegative = sign
   }
 
-  static add(a: FloatRegister, b: FloatRegister) {
+  static add(aInput: FloatRegister, bInput: FloatRegister) {
+    let a = new FloatRegister(aInput.mantissa.number, aInput.exponent, aInput.sign, aInput.FORMAT)
+    let b = new FloatRegister(bInput.mantissa.number, bInput.exponent, bInput.sign, bInput.FORMAT)
+
     console.log("adding")
 
     if (a.FORMAT.mantissa.hiddenOne) {
@@ -133,12 +136,12 @@ class FloatRegister /* implements IRegister */ {
 }
 // 0xf05
 // 0x005
-// const a = new FloatRegister(0xf05, 3, 1)
+// const a = new FloatRegister(0xf05, 3, 0)
 // const b = new FloatRegister(0x5, 1, 1)
 
 // const a = new FloatRegister(0x105, 5, 1, F2)
-// const b = new FloatRegister(0b1110_0100_0111, 3, 1, F2)
-// const a = new FloatRegister(0b1, 0, 0, F2)
+// const b = new FloatRegister(0b1110_0100_0111, 3, 0, F2)
+// const a = new FloatRegister(0b1, 1, 1, F2)
 // const b = new FloatRegister(0b1, 1, 0, F2)
 
 // const a = new FloatRegister(3, 2, 1, F2)
