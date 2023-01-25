@@ -27,8 +27,18 @@ export class Mantissa {
   private data: Register;
   private readonly ZERO_TRAIL_WIDTH: number
 
-  get number() {
+  get rawNumber() {
     return this.data.number >> this.ZERO_TRAIL_WIDTH
+  }
+
+  get number() {
+    if (this.FORMAT.hiddenOne) {
+      const number = this.recoverHiddenOne().rawNumber
+      this.shiftLeft(true)
+      return number
+    }
+
+    return this.rawNumber
   }
 
   get raw() {
@@ -61,7 +71,14 @@ export class Mantissa {
     return this
   }
 
-  shiftRight(zeroTrail = true) {
+  shiftRightFill() {
+    this.recoverHiddenOne()
+    this.zeroTrail()
+
+    return this
+  }
+
+  shiftRight(useExtendedBitGrid = false) {
     console.log("shifting right")
 
     const digitWidth = this.FORMAT.digitWidth
@@ -71,31 +88,28 @@ export class Mantissa {
       this.data.shiftRight(0)
     }
 
-    if (zeroTrail) {
-      this.zeroTrail()
-    }
+    this.zeroTrail(useExtendedBitGrid)
 
     return this
   }
 
-  shiftLeft(zeroTrail = true) {
+  shiftLeft(useExtendedBitGrid = false) {
     for (let i = 0; i < this.FORMAT.digitWidth; i++) {
       this.data.shiftLeft()
     }
 
-    if (zeroTrail) {
-      this.zeroTrail()
-    }
+    this.zeroTrail(useExtendedBitGrid)
+
 
     return this
   }
 
-  zeroTrail() {
-    for( let i = 0; i < this.ZERO_TRAIL_WIDTH; i++) {
+  zeroTrail(useExtendedBitGrid = false) {
+    for( let i = 0; i < this.ZERO_TRAIL_WIDTH - +useExtendedBitGrid; i++) {
       this.data.shiftRight(0)
     }
 
-    for( let i = 0; i < this.ZERO_TRAIL_WIDTH; i++) {
+    for( let i = 0; i < this.ZERO_TRAIL_WIDTH - +useExtendedBitGrid; i++) {
       this.data.shiftLeft(0)
     }
 
@@ -136,7 +150,7 @@ export class Mantissa {
   normalize(): number {
     let count = 0
     console.log("normalizing")
-    while (Mantissa.isRightDenormalized(this.number, this.FORMAT)) {
+    while (Mantissa.isRightDenormalized(this.rawNumber, this.FORMAT)) {
       this.shiftLeft()
       count++
     }

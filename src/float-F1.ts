@@ -67,14 +67,14 @@ class FloatRegister /* implements IRegister */ {
     if (difference < 0)  {
       console.log("below zero; shifting a")
       for (let i = 0; i < Math.abs(difference); i++) {
-        a.mantissa.shiftRight(!(a.FORMAT.mantissa.hiddenOne && i > 0))
+        a.mantissa.shiftRight(a.FORMAT.mantissa.hiddenOne)
       }
 
       console.log("a mantissa shifted", a.mantissa.raw)
     } else {
       console.log("equal or above zero; shifting b")
       for (let i = 0; i < difference; i++) {
-        b.mantissa.shiftRight(!(a.FORMAT.mantissa.hiddenOne && i > 0))
+        b.mantissa.shiftRight(b.FORMAT.mantissa.hiddenOne)
       }
 
       console.log("b mantissa shifted", b.mantissa.raw)
@@ -86,42 +86,70 @@ class FloatRegister /* implements IRegister */ {
 
     console.log("a mantissa    ", a.mantissa.raw)
     console.log("b mantissa    ", b.mantissa.raw)
- 
+
+
     if (a.sign == b.sign) {
       console.log(`sing are equal: a --- b   ${a.sign} --- ${b.sign}`)
-      a.mantissa.add(b.mantissa)
+      const carryOut = a.mantissa.add(b.mantissa)
+      
+      if (carryOut) {
+        console.log("result is left denormalized")
+        a.mantissa.shiftRightFill()
+        a.exponent += carryOut
+      }
     } else {
       console.log(`sing are different: a --- b   ${a.sign} --- ${b.sign}`)
+      // if abs(a) is lower then abs(b) -> swap
+      // b sign is a sign of result 
+      if (a.mantissa.number < b.mantissa.number) {
+        console.log("swapping")
+        const tmp = b
+        b = a
+        a = tmp
+      }
       const carryOut = a.mantissa.subtract(b.mantissa)
-      a.sign = carryOut;
+      // a.sign = carryOut;
+      // carryOut && a.mantissa.shiftLeft()
       console.log(`result is ${carryOut ? "negative" : "positive"}`)
     }
-
+    
     console.log("result before normalization", a.formattedBin)
+
+    console.log("result is right denormalized")
+    
     const correction = a.mantissa.normalize()
+    a.characteristic = a.characteristic - correction
+
     console.log("result after normalization", a.formattedBin)
     if (a.FORMAT.mantissa.hiddenOne) {
       a.mantissa.shiftLeft()
       b.mantissa.shiftLeft()
       console.log("result after hidden one correction", a.formattedBin)
     }
-    a.characteristic = a.characteristic - correction
 
+    return a
 
   }
 }
 // 0xf05
 // 0x005
+// const a = new FloatRegister(0xf05, 3, 1)
+// const b = new FloatRegister(0x5, 1, 1)
 
-const a = new FloatRegister(0x105, 5, 0, F2)
-const b = new FloatRegister(0b1110_0100_0111, 3, 0, F2)
+// const a = new FloatRegister(0x105, 5, 1, F2)
+// const b = new FloatRegister(0b1110_0100_0111, 3, 1, F2)
 // const a = new FloatRegister(0b1, 0, 0, F2)
 // const b = new FloatRegister(0b1, 1, 0, F2)
 
+// const a = new FloatRegister(3, 2, 1, F2)
+// const b = new FloatRegister(5, 3, 1, F2)
 
-FloatRegister.add(a, b)
+// const a = new FloatRegister(1, 1, 0, F2)
+// const b = new FloatRegister(1, 1, 0, F2)
 
-console.log(a.formattedBin)
+// const result = FloatRegister.add(b, a)
+
+// console.log(result.formattedBin)
 
 
 
