@@ -149,8 +149,12 @@ export class Mantissa {
 
   normalize(): number {
     let count = 0
+    const digitsAmount = Mantissa.computeAmountOfDigits(this.FORMAT)
     console.log("normalizing")
-    while (Mantissa.isRightDenormalized(this.rawNumber, this.FORMAT)) {
+    for (let i = 0; i < digitsAmount; i++) {
+      if (!Mantissa.isRightDenormalized(this.rawNumber, this.FORMAT)) {
+        break
+      }
       this.shiftLeft()
       count++
     }
