@@ -28,7 +28,7 @@ export class Mantissa {
   private readonly ZERO_TRAIL_WIDTH: number
 
   get rawNumber() {
-    return this.data.number >> BigInt(this.ZERO_TRAIL_WIDTH)
+    return this.numberWithoutTrail(this.data.number)
   }
 
   get number() {
@@ -43,6 +43,14 @@ export class Mantissa {
 
   get raw() {
     return this.data.formattedBin
+  }
+
+  get withoutTrail() {
+    return new Register(2).set(this.number)
+  }
+
+  private numberWithoutTrail(number: bigint): bigint {
+    return number >> BigInt(this.ZERO_TRAIL_WIDTH)
   }
 
   constructor(number: bigint | number, public readonly FORMAT: TMantissaFormat = F1Mantissa) {
@@ -73,7 +81,7 @@ export class Mantissa {
     return this
   }
 
-  shiftRightFill() {
+  shiftRightFillWithOne() {
     this.recoverHiddenOne()
     this.zeroTrail()
 
@@ -182,11 +190,6 @@ export class Mantissa {
     }
 
     return carryOut
-  }
-
-  multiplyFast2(mantissa: Mantissa) {
-    const result = new Register(4)
-
   }
 }
 

@@ -99,7 +99,7 @@ class FloatRegister /* implements IRegister */ {
       
       if (carryOut) {
         console.log("result is left denormalized")
-        a.mantissa.shiftRightFill()
+        a.mantissa.shiftRightFillWithOne()
         a.exponent += carryOut
       }
     } else {
