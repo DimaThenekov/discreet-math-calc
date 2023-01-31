@@ -59,13 +59,14 @@ export class Byte {
     console.assert(a.length >= b.length, "can't accommodate result in register")
     const lengthDifference = a.length - b.length
 
+    // prevent mutation
+    a = a.slice()
+    b = b.slice()
+
     for (let i = 0; i < lengthDifference; i++) {
       b.unshift(new Byte(b[0].sign ? Byte.MAX : 0))
     }
 
-    // prevent mutation
-    a = a.slice()
-    b = b.slice()
 
     a.reverse()
     b.reverse()
