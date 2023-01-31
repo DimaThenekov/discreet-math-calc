@@ -28,7 +28,7 @@ export class Mantissa {
   private readonly ZERO_TRAIL_WIDTH: number
 
   get rawNumber() {
-    return this.data.number >> this.ZERO_TRAIL_WIDTH
+    return this.data.number >> BigInt(this.ZERO_TRAIL_WIDTH)
   }
 
   get number() {
@@ -45,19 +45,21 @@ export class Mantissa {
     return this.data.formattedBin
   }
 
-  constructor(number: number, public readonly FORMAT: TMantissaFormat = F1Mantissa) {
-    this.ZERO_TRAIL_WIDTH = Register.WIDTH - this.FORMAT.bitsUsed
+  constructor(number: bigint | number, public readonly FORMAT: TMantissaFormat = F1Mantissa) {
+    number = BigInt(number)
+    this.data = new Register(2)
+    this.ZERO_TRAIL_WIDTH = this.data.WIDTH * Byte.LENGTH - this.FORMAT.bitsUsed
 
     const overflowedDigit = Mantissa.getDigit(number, Mantissa.computeAmountOfDigits(FORMAT), FORMAT)
     let toStore = number
 
     if (!(FORMAT.hiddenOne && overflowedDigit)) {
       // normalized
-      toStore = Mantissa.normalize(number, FORMAT, this.ZERO_TRAIL_WIDTH) << (FORMAT.hiddenOne ? FORMAT.digitWidth : 0)
+      toStore = Mantissa.normalize(number, FORMAT, this.ZERO_TRAIL_WIDTH) << BigInt(FORMAT.hiddenOne ? FORMAT.digitWidth : 0)
     }
 
-    const normalizedWithTrail = toStore << this.ZERO_TRAIL_WIDTH
-    this.data = new Register(normalizedWithTrail)
+    const normalizedWithTrail = toStore << BigInt(this.ZERO_TRAIL_WIDTH)
+    this.data.set(normalizedWithTrail)
     console.log("raw mantissa", this.raw)
   }
 
@@ -116,7 +118,7 @@ export class Mantissa {
     return this
   }
 
-  static normalize(number: number, format: TMantissaFormat, ZERO_TRAIL_WIDTH: number): number {
+  static normalize(number: bigint, format: TMantissaFormat, ZERO_TRAIL_WIDTH: number): bigint {
     const digitsAmount = Mantissa.computeAmountOfDigits(format)
 
     for (let i = 0; i < digitsAmount; i++) {
@@ -125,13 +127,13 @@ export class Mantissa {
       }
       // console.log("number", number.toString(2))
 
-      number = number << format.digitWidth
+      number = number << BigInt(format.digitWidth)
     }
 
     return number
   }
 
-  static isRightDenormalized(number: number, format: TMantissaFormat) {
+  static isRightDenormalized(number: bigint, format: TMantissaFormat) {
     const digitsAmount = Mantissa.computeAmountOfDigits(format)
     const mostSignificantDigit = digitsAmount - 1;
     return !Mantissa.getDigit(number, mostSignificantDigit, format)
@@ -142,9 +144,9 @@ export class Mantissa {
   }
 
   /** operates on numbers without trail */
-  private static getDigit(number: number, index: number, format: TMantissaFormat) {
+  private static getDigit(number: bigint, index: number, format: TMantissaFormat) {
     const mask = parseInt("1".repeat(format.digitWidth), 2) << (format.digitWidth * index)
-    return number & mask
+    return number & BigInt(mask)
   }
 
   normalize(): number {
@@ -173,11 +175,18 @@ export class Mantissa {
     const carryOut = this.data.subtract(mantissa.data)
     console.log("mantissa right after subtraction", this.raw)
     
+    const abs = (n: bigint) => (n === -0n || n < 0n) ? -n : n;
+
     if (carryOut) {
-      this.data = new Register(Math.abs(this.data.numberSigned))
+      this.data.set(abs(this.data.numberSigned))
     }
 
     return carryOut
+  }
+
+  multiplyFast2(mantissa: Mantissa) {
+    const result = new Register(4)
+
   }
 }
 

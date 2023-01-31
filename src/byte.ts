@@ -1,5 +1,7 @@
 export type ByteBinOpResult = readonly [Bit, Byte];
 
+export type ByteBinOp = (this: Byte, b: Byte, carryIn: Bit) => ByteBinOpResult
+
 export type Bit = 0 | 1;
 type RawByte = [Bit, Bit, Bit, Bit, Bit, Bit, Bit, Bit];
 export type halfRawByte = [Bit ,Bit, Bit, Bit]
@@ -51,6 +53,35 @@ export class Byte {
 
   private static isBit(num: number): num is Bit {
     return num == 0 || num == 1;
+  }
+
+  static performBinOp(a: Byte[], b: Byte[], op: ByteBinOp): [Bit, Byte[]] {
+    console.assert(a.length >= b.length, "can't accommodate result in register")
+    const lengthDifference = a.length - b.length
+
+    for (let i = 0; i < lengthDifference; i++) {
+      b.unshift(new Byte(b[0].sign ? Byte.MAX : 0))
+    }
+
+    // prevent mutation
+    a = a.slice()
+    b = b.slice()
+
+    a.reverse()
+    b.reverse()
+
+    let carryBit: Bit = 0
+
+    const result: Byte[] = []
+
+    for (let i = 0; i < b.length; i++) {
+      const [carryOut, resultByte] = op.call(a[i], b[i], carryBit) as Omit<ByteBinOpResult, never>;
+      carryBit = carryOut
+
+      result.unshift(resultByte)
+    }
+
+    return [carryBit, result]
   }
 
   add(byte: Byte, carryIn: Bit = 0): ByteBinOpResult {

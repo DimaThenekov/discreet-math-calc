@@ -51,7 +51,9 @@ class FloatRegister /* implements IRegister */ {
   }
 
   static add(aInput: FloatRegister, bInput: FloatRegister) {
+    // @ts-ignore
     let a = new FloatRegister(aInput.mantissa.number, aInput.exponent, aInput.sign, aInput.FORMAT)
+    // @ts-ignore
     let b = new FloatRegister(bInput.mantissa.number, bInput.exponent, bInput.sign, bInput.FORMAT)
 
     console.log("adding")
@@ -150,10 +152,11 @@ class FloatRegister /* implements IRegister */ {
 // const a = new FloatRegister(1, 1, 0, F2)
 // const b = new FloatRegister(1, 1, 0, F2)
 
+// const a = new FloatRegister(0, 0, 0)
+// const b = new FloatRegister(0x13, 0, 1)
+
+
 // const result = FloatRegister.add(b, a)
 
 // console.log(result.formattedBin)
-
-
-
 

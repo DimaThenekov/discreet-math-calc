@@ -5,115 +5,180 @@ enum EAction {
   ADD_SHIFT,
 }
 
-enum EMethod {
+export enum EMethod {
   WITH_CORRECTION,
   BUTE_METHOD,
 }
 
 export interface IRegister {
   formattedBin: string,
-  number: number,
-  numberSigned: number
+  number: number | BigInt,
+  numberSigned: number | bigint
 }
 
 export class Register implements IRegister {
-  //@ts-ignore
-  private lowByte: Byte;
-  //@ts-ignore
-  private highByte: Byte;
+  private bytes: Byte[] = []
 
-  static WIDTH = Byte.LENGTH * 2
+  private get MAX() {
+    return 2n**(BigInt(this.WIDTH * Byte.LENGTH)) - 1n
+  }
 
-  constructor(initialContent: number | string) {
-    this.data = initialContent;
+  /** @argument WIDTH amount of bytes to use */
+  constructor(readonly WIDTH: number) {
+    console.assert(WIDTH % 2 == 0, "incorrect WIDTH")
+
+    for (let i = 0; i < WIDTH; i++) {
+      this.bytes.push(new Byte(0))
+    }
+  }
+
+  set(dataInput: number | bigint | Byte[]): this {
+    if (typeof dataInput === "number" || typeof dataInput === "bigint") {
+      let data = BigInt(dataInput)
+      const maxAllowedNumber = this.MAX
+      console.assert(dataInput <= maxAllowedNumber, `number ${dataInput} can't be stored inside register with width ${this.WIDTH}
+      Max allowed number is ${maxAllowedNumber}`)
+
+      const mask = BigInt(Byte.MAX)
+      
+      const newBytes: Byte[] = []
+      
+      for (let i = this.WIDTH; i > 0; i--) {
+        const value = Number(data & mask)
+        data = data >> BigInt(Byte.LENGTH)
+        
+        newBytes.unshift(new Byte(value))
+      }
+      
+      console.assert(newBytes.length === this.WIDTH, "length of array to set must be equal to WIDTH")
+      this.bytes = newBytes
+    } else {
+      for (let i = this.WIDTH - dataInput.length; i < this.WIDTH; i++) {
+        dataInput.unshift(new Byte(0))
+
+        this.bytes = dataInput
+      }
+    }
+
+    return this
+  }
+
+  get highHalf() {
+    return this.bytes.slice(0, this.center)
+  }
+
+  private set highHalf(bytes: Byte[]) {
+    console.assert(bytes.length == this.center)
+
+    this.bytes.splice(0, this.center, ...bytes)
+  }
+
+  private get center(): number {
+    return Math.floor(this.WIDTH / 2)
+  }
+
+  get lowHalf() {
+    return this.bytes.slice(this.center)
   }
 
   get sign() {
-    return this.highByte.sign
+    return this.bytes[0].sign
   }
 
-  get number() {
-    return (this.highByte.number << Byte.LENGTH) + this.lowByte.number;
+  get number(): bigint {
+    return this.bytes.reduce((result, currentByte) => {
+      result <<= BigInt(Byte.LENGTH)
+      result += BigInt(currentByte.number)
+      return result
+    }, 0n)
   }
 
   get numberSigned() {
     if (this.sign) {
-      return -(2 ** 16 - this.number);
+      return -1n * ((this.MAX + 1n) - this.number);
     }
 
     return this.number;
   }
 
-  get width() {
-    return Register.WIDTH
-  }
+  get formattedBin(): string {
+    let nonNull = false
 
-  get formattedBin() {
-    if (this.highByte.number != 0) {
-      return this.highByte.bin + " " + this.lowByte.bin;
-    }
+    return this.bytes.map((byte, i, a) => {
+      if (!nonNull && byte.number == 0 && i != a.length - 1) {
+        return null
+      }
 
-    return this.lowByte.bin;
+      nonNull = true
+      return byte.bin
+    }).filter((value) => value != null).join(" ")
   }
 
   shiftLeft(fill: Bit = 0) {
-    const shiftedFromLow = this.lowByte.shiftLeft(fill)
-    return this.highByte.shiftLeft(shiftedFromLow)
+    for (let i = 0; i < this.bytes.length; i++) {
+      fill = this.getByte(i)!.shiftLeft(fill)
+    }
+    
+    return fill
   }
 
   shiftRight(fill: Bit = this.sign) {
-    const shiftedFromHigh = this.highByte.shiftRight(fill);
-    return this.lowByte.shiftRight(shiftedFromHigh);
+    for (let i = 0; i < this.bytes.length; i++) {
+      fill = this.bytes[i].shiftRight(fill)
+    }
+
+    return fill
+  }
+
+  private getByte(index: number) {
+    return this.bytes.at(index*-1 -1)
   }
 
   shiftRightArithmetic() {
-    const shiftedFromHigh = this.highByte.shiftRightArithmetic()
-    return this.lowByte.shiftRight(shiftedFromHigh)
+    let fill: Bit = this.bytes[0].shiftRightArithmetic()
+    
+    // staring from one 'cause operation of first byte is already performed
+    for (let i = 1; i < this.bytes.length; i++) {
+      fill = this.bytes[i].shiftRight(fill)
+    }
+
+    return fill
   }
 
-  add(reg: Register) {
-    const [carryOutIntermediate, lowByte] = this.lowByte.add(reg.lowByte);
-    const [carryOut, highByte] = this.highByte.add(reg.highByte, carryOutIntermediate);
+  add(reg: Register): Bit {
+    console.assert(reg.WIDTH <= this.WIDTH, "can't accommodate result in register")
+    const a = this
+    const b = reg
 
-    this.lowByte = lowByte;
-    this.highByte = highByte;
+    const [carryBit, result] = Byte.performBinOp(a.bytes, b.bytes, Byte.prototype.add)
+ 
+    this.bytes = result
+
+    return carryBit
+  }
+
+  addHigh(reg: Register) {
+    const [carryOut, result] = Byte.performBinOp(this.highHalf, reg.lowHalf, Byte.prototype.add)
+    this.highHalf = result
 
     return carryOut
-  }
-
-  addHigh(byte: Byte) {
-    const [_, highByte] = this.highByte.add(byte)
-    this.highByte = highByte
   }
 
   subtract(reg: Register) {
-    const [carryOutIntermediate, lowByte] = this.lowByte.subtract(reg.lowByte);
-    const [carryOut, highByte] = this.highByte.subtract(reg.highByte, carryOutIntermediate)
-    
-    this.lowByte = lowByte
-    this.highByte = highByte
+    const a = this
+    const b = reg
+
+    const [carryOut, result] = Byte.performBinOp(a.bytes, b.bytes, Byte.prototype.subtract)
+    this.bytes = result
+
     return carryOut
   }
 
-  subtractHigh(byte: Byte) {
-    const [_, highByte] = this.highByte.subtract(byte, 0)
-    this.highByte = highByte
-  }
+  subtractHigh(reg: Register) {
+    const [carryOut, result] = Byte.performBinOp(this.highHalf, reg.lowHalf, Byte.prototype.subtract)
+    this.highHalf = result
 
-  set data(data: number | string) {
-    switch (typeof data) {
-      case "string":
-        data = parseInt(data, 2);
-
-      case "number":
-        this.lowByte = new Byte(data & 0xff);
-        this.highByte = new Byte((data >> 8) & 0xff);
-        break;
-
-      default:
-        console.assert(false, "default case fired!");
-        break;
-    }
+    return carryOut
   }
 
   static multiply(
@@ -136,12 +201,12 @@ export class Register implements IRegister {
   }
 
   private static multiplyWithCorrection(a: Register, b: Register) {
-    const result = new Register(0);
+    const result = new Register(a.WIDTH * 2);
 
-    for (let i = 0; i < Byte.LENGTH; i++) {
+    for (let i = 0; i < Byte.LENGTH * a.WIDTH; i++) {
       console.log(`--------------${i + 1}--------------`);
 
-      if (b.shiftRight(0) == EAction.SHIFT) {
+      if (b.shiftRight() == EAction.SHIFT) {
         console.log("shifting");
         console.log(`result reg before shifting: ${result.formattedBin}`);
 
@@ -151,7 +216,7 @@ export class Register implements IRegister {
       } else {
         console.log("adding and shifting");
 
-        result.highByte = result.highByte.add(a.lowByte)[1];
+        result.addHigh(a)
         console.log(
           `addition result ${result.formattedBin}; num: ${result.number}`
         );
@@ -164,7 +229,7 @@ export class Register implements IRegister {
       );
     }
 
-    if (b.lowByte.sign) {
+    if (b.sign) {
       Register.correction(result, a);
     }
 
@@ -173,11 +238,11 @@ export class Register implements IRegister {
 
   private static multiplyBute(a: Register, b: Register): Register {
     
-    const result = new Register(0)
+    const result = new Register(a.WIDTH * 2)
     
     let lastShift: Bit = 0
 
-    for (let i = 0; i < Byte.LENGTH; i++ ) {
+    for (let i = 0; i < Byte.LENGTH * (a.WIDTH); i++ ) {
       console.log(`--------------${i + 1}--------------`);
       // 1 -> 0  +++ shift
       // 0 -> 1  --- shift
@@ -187,11 +252,11 @@ export class Register implements IRegister {
         console.log(`shifted bits are different: lastShift ${lastShift}; currentShift ${currentShift}`)
         if (lastShift) {
           console.log("adding")
-          result.highByte = result.highByte.add(a.lowByte)[1]
+          result.addHigh(a)
           console.log(`addition result ${result.formattedBin}; num: ${result.number}`)
         } else {
           console.log("subtracting")
-          result.subtractHigh(a.lowByte)
+          result.subtractHigh(a)
           console.log(`subtraction result ${result.formattedBin}; num: ${result.number}`)
         }
       }
@@ -209,14 +274,16 @@ export class Register implements IRegister {
 
   private static correction(result: Register, multiplicand: Register) {
     console.log(
-      `performing correction on ${result.highByte.bin} by ${multiplicand.lowByte.bin} ${multiplicand.lowByte.number}`
-    );
-    const positive = 2**Byte.LENGTH - multiplicand.lowByte.number;
+      `performing correction on ${result.highHalf.join(" ")} by ${multiplicand.lowHalf.join(" ")} ${parseInt(multiplicand.lowHalf.join(""))}`
+    );    
 
-    result.highByte = result.highByte.add(new Byte(positive))[1];
+    const correction = new Register(result.WIDTH).set(multiplicand.numberSigned*-1n)
+
+    result.addHigh(correction)
+
     console.log(
-      `corrected high byte ${result.highByte.bin}`,
-      result.highByte.number
+      `corrected high byte ${result.highHalf.join(" ")}`,
+      parseInt(result.highHalf.join(""))
     );
   }
 
@@ -224,7 +291,7 @@ export class Register implements IRegister {
     return this.formattedBin;
   }
 
-  public static divide(dividendInput: Register, dividerInput: Register) {
+/*   public static divide(dividendInput: Register, dividerInput: Register) {
     // init result and current reminder (dividend may be copied to current reminder)
     const dividend = new Register(dividendInput.number)
     const divider = new Register(dividerInput.number)
@@ -301,7 +368,7 @@ export class Register implements IRegister {
 
     return [dividend.sign != currentReminder.sign, currentReminder.sign == divider.sign]
 
-  }
+  } */
 
   static printBeauty(reg: IRegister, message: string) {
     console.log(message, reg.formattedBin, reg.number.toString(), reg.numberSigned)
@@ -318,6 +385,13 @@ export class Register implements IRegister {
 // const [result, reminder] = Register.divide(testRegister, test)
 //   Register.printBeauty(result, "result")
 // Register.printBeauty(reminder, "reminder")
+
+// const a = new Register(4).set(-88)
+// const b = new Register(4).set(36)
+
+// const result = Register.multiply(a, b)
+
+// Register.printBeauty(result, "result")
 
 
 
