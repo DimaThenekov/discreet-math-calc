@@ -32,6 +32,15 @@ describe("floats", () => {
         assert.equal(a.number, 0xe05)
       })
 
+      it("add overflow", () => {
+        const a = new Mantissa(0xf0c)
+        const b = new Mantissa(0xf)
+
+        const carryOut = a.add(b)
+
+        assert.strictEqual(carryOut, 1)
+      })
+
       it("add denormalized", () => {
         const a = new Mantissa(0xf0c)
         const b = new Mantissa(0x5).shiftRight().shiftRight()
@@ -59,6 +68,23 @@ describe("floats", () => {
 
         assert.strictEqual(carryOut, 0, "should not carry out")
         assert.equal(a.number, 0xf00)
+      })
+
+      it("subtract overflow", () => {
+        const a = new Mantissa(0xe0c)
+        const b = new Mantissa(0xf)
+
+        const carryOut = a.add(b)
+
+        assert.strictEqual(carryOut, 1)
+      })
+
+      it("normalize", () => {
+        const a = new Mantissa(0x5).shiftRight().shiftRight()
+        const correction = a.normalize()
+
+        assert.strictEqual(correction, 2)
+        assert.equal(a.number, 0x500)
       })
     })
 
