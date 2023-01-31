@@ -216,6 +216,48 @@ describe("Register", () => {
         assert.equal(result.numberSigned, -a*-b)
       })
     })
+
+    describe("Fast 2", () => {
+
+      const aReg = new Register(2)
+      const bReg = new Register(2)
+      
+      it(`${a} * ${b} = ${a * b}`, () => {
+        aReg.set(a)
+        bReg.set(b)
+        
+        const result = Register.multiply(aReg, bReg, EMethod.FAST_2)
+
+        assert.equal(result.numberSigned, a*b)
+      })
+      
+      it(`${a} * ${-b} = ${a * -b}`, () => {
+        aReg.set(a)
+        bReg.set(-b)
+        
+        const result = Register.multiply(aReg, bReg, EMethod.FAST_2)
+
+        assert.equal(result.numberSigned, a*-b)
+      })
+      
+      it(`${-a} * ${b} = ${-a * b}`, () => {
+        aReg.set(-a)
+        bReg.set(b)
+        
+        const result = Register.multiply(aReg, bReg, EMethod.FAST_2)
+
+        assert.equal(result.numberSigned, -a*b)
+      })
+      
+      it(`${-a} * ${-b} = ${-a * -b}`, () => {
+        aReg.set(-a)
+        bReg.set(-b)
+        
+        const result = Register.multiply(aReg, bReg, EMethod.FAST_2)
+
+        assert.equal(result.numberSigned, -a*-b)
+      })
+    })
   })
 
   
