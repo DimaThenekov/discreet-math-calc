@@ -375,16 +375,16 @@ export class Register implements IRegister {
     for (let i = 0; i < (Byte.LENGTH * b.WIDTH) / 4; i++ ) {
       console.log(`---------------------step ${i + 1}---------------------`)
       
-      const actionByteFull = b.getByte(0)!.sliceToByte(4, 8, true).add(new Byte(correction))[1]
-      const actionByte = actionByteFull.sliceToByte(4, 8, true)
-      actionLow = actionByte.sliceNumber(6,8, true)
+      const actionByteWithCorrection = b.getByte(0)!.sliceToByte(4, 8, true).add(new Byte(correction))[1]
+      const actionByteWithCorrectionTruncated = actionByteWithCorrection.sliceToByte(4, 8, true)
+      actionLow = actionByteWithCorrectionTruncated.sliceNumber(6,8, true)
       internalCorrection = +(actionLow == 0b11) as Bit
       
-      actionHigh = (actionByte.sliceNumber(4, 6, true) + internalCorrection) & 0b11
+      actionHigh = (actionByteWithCorrectionTruncated.sliceNumber(4, 6, true) + internalCorrection) & 0b11
       
       console.log(actionHigh.toString(2).padStart(2, "0") + actionLow.toString(2).padStart(2, "0"))
 
-      correction = +(actionByteFull.number >= 0b1011) as Bit
+      correction = +(actionByteWithCorrection.number >= 0b1011) as Bit
 
       b.shiftRight()
       b.shiftRight()
