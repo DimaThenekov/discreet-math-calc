@@ -9,6 +9,7 @@ export enum EMethod {
   WITH_CORRECTION,
   BUTE_METHOD,
   FAST_2,
+  FAST_4
 }
 
 export interface IRegister {
@@ -188,18 +189,18 @@ export class Register implements IRegister {
     return carryOut
   }
 
-  subtractHigh(reg: Register) {
+  subtractHigh(reg: Register, allowTruncation = false) {
     let carryOut: Bit = 0
     let result: Byte[] = []
 
     const canAccommodate = this.WIDTH >= reg.WIDTH * 2
     const highHalfEmpty = new Register(reg.WIDTH).set(reg.highHalf).number == 0n
-    const isSafe = canAccommodate || (!canAccommodate && highHalfEmpty)
+    const isSafe = canAccommodate || (!canAccommodate && highHalfEmpty) || allowTruncation
 
     if (isSafe) {
       [carryOut, result] = Byte.performBinOp(this.highHalf, canAccommodate ? reg.bytes : reg.lowHalf, Byte.prototype.subtract)
     } else {
-      console.assert("not safe to perform subtractHigh when high half is not empty and can't accommodate result")
+      console.assert("not safe to perform addHigh when high half is not empty and can't accommodate result")
       throw new Error()
     }
 
@@ -226,7 +227,10 @@ export class Register implements IRegister {
         return Register.multiplyBute(a, b);
 
       case EMethod.FAST_2:
-        return Register.multiplyFast2(a, b)
+        return Register.multiplyFast2(a, b);
+      
+      case EMethod.FAST_4:
+        return Register.multiplyFast4(a, b)
     }
   }
 
@@ -373,18 +377,33 @@ export class Register implements IRegister {
     const result = new Register(a.WIDTH * 2)
 
     let correction: Bit = 0
-    let action = 0
+    let internalCorrection: Bit = 0
+
+
+    let actionLow = 0
+    let actionHigh = 0
     for (let i = 0; i < (Byte.LENGTH * b.WIDTH) / 4; i++ ) {
       console.log(`---------------------step ${i + 1}---------------------`)
-      action = b.getByte(0)!.add(new Byte(correction))[1].sliceNumber(4, 8)
+      
+      const actionByte = b.getByte(0)!.sliceToByte(4, 8, true)
+      actionLow = (actionByte.sliceNumber(6,8, true) + correction) & 0b11
+      internalCorrection = +(actionLow == 0b11) as Bit
+      
+      actionHigh = (actionByte.sliceNumber(4, 6, true) + internalCorrection) & 0b11
+      
+      console.log(actionHigh.toString(2).padStart(2, "0") + actionLow.toString(2).padStart(2, "0"))
+
+      correction = +(actionHigh == 0b11) as Bit
+
+
       b.shiftRight()
       b.shiftRight()
       b.shiftRight()
       b.shiftRight()
 
-      console.log(`action ${action.toString(2)} ${correction}:`)
+      console.log(`actionLow ${actionLow.toString(2)} ${correction}:`)
 
-      switch (action) {
+      switch (actionLow) {
         case 0b00:
           break;
         case 0b01:
@@ -408,6 +427,45 @@ export class Register implements IRegister {
           break;
       }
 
+      console.log(`actionHigh ${actionHigh.toString(2)} ${internalCorrection}:`)
+
+      switch ((actionHigh) & 0b11) {
+        case 0b00:
+          break;
+        case 0b01:
+          {
+            const add = new Register(a.WIDTH*2).set(a.number)
+            add.shiftLeft()
+            add.shiftLeft()
+            Register.printBeauty(add, "shift left 4 and add")
+            result.addHigh(add, true)
+            Register.printBeauty(result, "addition result   ")
+          }
+          break;
+        case 0b10:
+          {
+            const add = new Register(a.WIDTH*2).set(a.number)
+            add.shiftLeft()
+            add.shiftLeft()
+            add.shiftLeft()
+            Register.printBeauty(add, "shift left 8 and add")
+            result.addHigh(add, true)
+            Register.printBeauty(result, "addition result   ")
+          }
+          break;
+        case 0b11:
+          {
+            const negative = new Register(a.WIDTH)
+            negative.subtract(a)
+            negative.shiftLeft()
+            negative.shiftLeft()
+            Register.printBeauty(negative, "shift 4 and subtract")
+            result.addHigh(negative, true)
+            Register.printBeauty(result, "subtraction result")
+          }
+          break;
+      }
+
       result.shiftRight()
       result.shiftRight()
       result.shiftRight()
@@ -416,10 +474,9 @@ export class Register implements IRegister {
 
       Register.printBeauty(result, "shifted           ")
 
-      correction = +(action == 3 || (action == 0 && correction == 1)) as Bit
     }
 
-    if (action == 1) {
+    if (actionLow == 1) {
       result.addHigh(a)
     }
 
@@ -514,28 +571,13 @@ export class Register implements IRegister {
   }
 }
 
-// const testRegister = new Register(-1916);
-// // testRegister.add(new Register(88))
-// // const testRegister = new Register(-88)
+// const a = new Register(4).set(0b1_00_1100_0000)
+// const b = new Register(4).set(0b1_11_1010_1110)
 
-// // const result = Register.multiply(testRegister, new Register(36));
+// const a = new Register(4).set(0x5)
+// const b = new Register(4).set(-0x4)
 
-// const test = new Register(26);
-// const [result, reminder] = Register.divide(testRegister, test)
-//   Register.printBeauty(result, "result")
-// Register.printBeauty(reminder, "reminder")
 
-// const a = new Register(2).set(0x98)
-// const b = new Register(2).set(0x1ec)
-
-// // 11111111 10101000 00001100 01100000;
-
-// const result = Register.multiply(a, b, EMethod.FAST_2)
-// // const result = Register.multiply(b, a)
+// const result = Register.multiply(a, b, EMethod.FAST_4)
 
 // Register.printBeauty(result, "result")
-
-
-
-// @ts-ignore
-// console.log(result.formattedBin, result.number, result.numberSigned);

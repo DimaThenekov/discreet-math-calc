@@ -257,7 +257,90 @@ describe("Register", () => {
 
         assert.equal(result.numberSigned, -a*-b)
       })
+
+      it("0x98 * 0x1ec = 0x12420", () => {
+        aReg.set(0x98)
+        bReg.set(0x1ec)
+
+        const result = Register.multiply(aReg, bReg, EMethod.FAST_2)
+
+        assert.equal(result.numberSigned, 0x12420)
+      })
+
+      it(`0x100 * 0x100 = ${0x100 * 0x100}`, () => {
+        aReg.set(0x100)
+        bReg.set(0x100)
+
+        const result = Register.multiply(aReg, bReg, EMethod.FAST_2)
+
+        assert.equal(result.numberSigned, 0x100*0x100)
+      })
+
+      
     })
+
+    describe("Fast 4", () => {
+
+      const aReg = new Register(4)
+      const bReg = new Register(4)
+      
+      it(`${a} * ${b} = ${a * b}`, () => {
+        aReg.set(a)
+        bReg.set(b)
+        
+        const result = Register.multiply(aReg, bReg, EMethod.FAST_4)
+
+        assert.equal(result.numberSigned, a*b)
+      })
+      
+      it(`${a} * ${-b} = ${a * -b}`, () => {
+        aReg.set(a)
+        bReg.set(-b)
+        
+        const result = Register.multiply(aReg, bReg, EMethod.FAST_4)
+
+        assert.equal(result.numberSigned, a*-b)
+      })
+      
+      it(`${-a} * ${b} = ${-a * b}`, () => {
+        aReg.set(-a)
+        bReg.set(b)
+        
+        const result = Register.multiply(aReg, bReg, EMethod.FAST_4)
+
+        assert.equal(result.numberSigned, -a*b)
+      })
+      
+      it(`${-a} * ${-b} = ${-a * -b}`, () => {
+        aReg.set(-a)
+        bReg.set(-b)
+        
+        const result = Register.multiply(aReg, bReg, EMethod.FAST_4)
+
+        assert.equal(result.numberSigned, -a*-b)
+      })
+
+      it("0x98 * 0x1ec = 0x12420", () => {
+        aReg.set(0x98)
+        bReg.set(0x1ec)
+
+        const result = Register.multiply(aReg, bReg, EMethod.FAST_4)
+
+        assert.equal(result.numberSigned, 0x12420)
+      })
+
+      it(`0x100 * 0x100 = ${0x100 * 0x100}`, () => {
+        aReg.set(0x100)
+        bReg.set(0x100)
+
+        const result = Register.multiply(aReg, bReg, EMethod.FAST_4)
+
+        assert.equal(result.numberSigned, 0x100*0x100)
+      })
+
+      
+    })
+    
   })
 
   
