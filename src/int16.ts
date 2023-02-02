@@ -338,23 +338,13 @@ export class Register implements IRegister {
         case 0b00:
           break;
         case 0b01:
-          Register.printBeauty(a, "adding")
-          result.addHigh(a)
-          Register.printBeauty(result, "addition result   ")
+          Register.shiftAddAction(result, a, false, 0)
           break;
         case 0b10:
-          const add = new Register(a.WIDTH*2).set(a.number)
-          add.shiftLeft()
-          Register.printBeauty(add, "shift left and add")
-          result.addHigh(add, true)
-          Register.printBeauty(result, "addition result   ")
+          Register.shiftAddAction(result, a, false, 1)
           break;
         case 0b11:
-          const negative = new Register(a.WIDTH)
-          negative.subtract(a)
-          Register.printBeauty(negative, "subtracting       ")
-          result.subtractHigh(a)
-          Register.printBeauty(result, "subtraction result")
+          Register.shiftAddAction(result, a, true, 0)
           break;
       }
 
@@ -385,16 +375,16 @@ export class Register implements IRegister {
     for (let i = 0; i < (Byte.LENGTH * b.WIDTH) / 4; i++ ) {
       console.log(`---------------------step ${i + 1}---------------------`)
       
-      const actionByte = b.getByte(0)!.sliceToByte(4, 8, true)
-      actionLow = (actionByte.sliceNumber(6,8, true) + correction) & 0b11
+      const actionByteFull = b.getByte(0)!.sliceToByte(4, 8, true).add(new Byte(correction))[1]
+      const actionByte = actionByteFull.sliceToByte(4, 8, true)
+      actionLow = actionByte.sliceNumber(6,8, true)
       internalCorrection = +(actionLow == 0b11) as Bit
       
       actionHigh = (actionByte.sliceNumber(4, 6, true) + internalCorrection) & 0b11
       
       console.log(actionHigh.toString(2).padStart(2, "0") + actionLow.toString(2).padStart(2, "0"))
 
-      correction = +(actionHigh == 0b11) as Bit
-
+      correction = +(actionByteFull.number >= 0b1011) as Bit
 
       b.shiftRight()
       b.shiftRight()
@@ -407,23 +397,13 @@ export class Register implements IRegister {
         case 0b00:
           break;
         case 0b01:
-          Register.printBeauty(a, "adding")
-          result.addHigh(a)
-          Register.printBeauty(result, "addition result   ")
+          Register.shiftAddAction(result, a, false, 0)
           break;
         case 0b10:
-          const add = new Register(a.WIDTH*2).set(a.number)
-          add.shiftLeft()
-          Register.printBeauty(add, "shift left and add")
-          result.addHigh(add, true)
-          Register.printBeauty(result, "addition result   ")
+          Register.shiftAddAction(result, a, false, 1)
           break;
         case 0b11:
-          const negative = new Register(a.WIDTH)
-          negative.subtract(a)
-          Register.printBeauty(negative, "subtracting       ")
-          result.subtractHigh(a)
-          Register.printBeauty(result, "subtraction result")
+          Register.shiftAddAction(result, a, true, 0)
           break;
       }
 
@@ -433,36 +413,13 @@ export class Register implements IRegister {
         case 0b00:
           break;
         case 0b01:
-          {
-            const add = new Register(a.WIDTH*2).set(a.number)
-            add.shiftLeft()
-            add.shiftLeft()
-            Register.printBeauty(add, "shift left 4 and add")
-            result.addHigh(add, true)
-            Register.printBeauty(result, "addition result   ")
-          }
+          Register.shiftAddAction(result, a, false, 2)
           break;
         case 0b10:
-          {
-            const add = new Register(a.WIDTH*2).set(a.number)
-            add.shiftLeft()
-            add.shiftLeft()
-            add.shiftLeft()
-            Register.printBeauty(add, "shift left 8 and add")
-            result.addHigh(add, true)
-            Register.printBeauty(result, "addition result   ")
-          }
+          Register.shiftAddAction(result, a, false, 3)
           break;
         case 0b11:
-          {
-            const negative = new Register(a.WIDTH)
-            negative.subtract(a)
-            negative.shiftLeft()
-            negative.shiftLeft()
-            Register.printBeauty(negative, "shift 4 and subtract")
-            result.addHigh(negative, true)
-            Register.printBeauty(result, "subtraction result")
-          }
+          Register.shiftAddAction(result, a, true, 2)
           break;
       }
 
@@ -480,6 +437,26 @@ export class Register implements IRegister {
       result.addHigh(a)
     }
 
+    return result
+  }
+
+  private static shiftAddAction(result: Register, a: Register, negative: boolean, shiftBy: number) {
+    const add = new Register(a.WIDTH*2)
+    if (negative) {
+      add.subtract(a)
+    } else {
+      add.add(a)
+    }
+
+    for (let i = 0; i < shiftBy; i++) {
+      add.shiftLeft()
+    }
+    const actionName = negative ? "subtract" : "add"
+    const resultName = negative ? "subtraction" : "addition"
+ 
+    Register.printBeauty(add, `shift left ${shiftBy != 1 ? shiftBy + " " : ""}and ${actionName}`)
+    result.addHigh(add, true)
+    Register.printBeauty(result, `${resultName} result   `)
     return result
   }
 
@@ -574,8 +551,8 @@ export class Register implements IRegister {
 // const a = new Register(4).set(0b1_00_1100_0000)
 // const b = new Register(4).set(0b1_11_1010_1110)
 
-// const a = new Register(4).set(0x5)
-// const b = new Register(4).set(-0x4)
+// const a = new Register(4).set(88)
+// const b = new Register(4).set(36)
 
 
 // const result = Register.multiply(a, b, EMethod.FAST_4)
