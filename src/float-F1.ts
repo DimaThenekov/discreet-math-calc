@@ -56,28 +56,20 @@ class FloatRegister /* implements IRegister */ {
 
     console.log("adding")
 
-    if (a.FORMAT.mantissa.hiddenOne) {
-      console.log("format has hidden one, shifting right")
-      a.mantissa.recoverHiddenOne()
-      b.mantissa.recoverHiddenOne()
-      console.log("a with hidden one recovered", a.formattedBin)
-      console.log("b with hidden one recovered", b.formattedBin)
-    }
-
     const difference = a.characteristic - b.characteristic
     console.log(`exponent difference is ${difference} = ${a.characteristic} - ${b.characteristic}`)
 
     if (difference < 0) {
       console.log("below zero; shifting a")
       for (let i = 0; i < Math.abs(difference); i++) {
-        a.mantissa.shiftRight(a.FORMAT.mantissa.hiddenOne)
+        a.mantissa.shiftRight()
       }
 
       console.log("a mantissa shifted", a.mantissa.raw)
     } else {
       console.log("equal or above zero; shifting b")
       for (let i = 0; i < difference; i++) {
-        b.mantissa.shiftRight(b.FORMAT.mantissa.hiddenOne)
+        b.mantissa.shiftRight()
       }
 
       console.log("b mantissa shifted", b.mantissa.raw)
@@ -97,7 +89,7 @@ class FloatRegister /* implements IRegister */ {
       
       if (carryOut) {
         console.log("result is left denormalized")
-        a.mantissa.shiftRightFillWithOne()
+        a.mantissa.shiftRight(1)
         a.exponent += carryOut
       }
     } else {
@@ -124,11 +116,6 @@ class FloatRegister /* implements IRegister */ {
     a.characteristic = a.characteristic - correction
 
     console.log("result after normalization", a.formattedBin)
-    if (a.FORMAT.mantissa.hiddenOne) {
-      a.mantissa.shiftLeft()
-      b.mantissa.shiftLeft()
-      console.log("result after hidden one correction", a.formattedBin)
-    }
 
     return a
 

@@ -25,107 +25,45 @@ export const F2Mantissa: TMantissaFormat = {
 export class Mantissa {
   
   private data: Register;
-  private readonly ZERO_TRAIL_WIDTH: number
-
-  get rawNumber() {
-    return this.numberWithoutTrail(this.data.number, this.FORMAT.hiddenOne)
-  }
 
   get number() {
-    if (this.FORMAT.hiddenOne) {
-      const number = this.recoverHiddenOne().rawNumber
-      this.shiftLeft(true)
-      return number
-    }
-
-    return this.rawNumber
+    return this.data.number
   }
 
   get raw() {
     return this.data.formattedBin
   }
 
-  get withoutTrail() {
-    return new Register(2).set(this.number)
-  }
-
-  private numberWithoutTrail(number: bigint, useExtendedBitGrid: boolean = false): bigint {
-    return number >> BigInt(this.ZERO_TRAIL_WIDTH - +useExtendedBitGrid)
-  }
-
   constructor(number: bigint | number, public readonly FORMAT: TMantissaFormat = F1Mantissa) {
     number = BigInt(number)
+    const normalized =  Mantissa.normalize(number, FORMAT)
+    
     this.data = new Register(2)
-    this.ZERO_TRAIL_WIDTH = this.data.WIDTH * Byte.LENGTH - this.FORMAT.bitsUsed
-
-    const overflowedDigit = Mantissa.getDigit(number, Mantissa.computeAmountOfDigits(FORMAT), FORMAT)
-    let toStore = number
-
-    if (!(FORMAT.hiddenOne && overflowedDigit)) {
-      // normalized
-      toStore = Mantissa.normalize(number, FORMAT, this.ZERO_TRAIL_WIDTH) << BigInt(FORMAT.hiddenOne ? FORMAT.digitWidth : 0)
-    }
-
-    const normalizedWithTrail = toStore << BigInt(this.ZERO_TRAIL_WIDTH)
-    this.data.set(normalizedWithTrail)
+    this.data.set(normalized)
     console.log("raw mantissa", this.raw)
   }
 
-  recoverHiddenOne() {
-    this.data.shiftRight(1)
-
-    for (let i = 0; i < this.FORMAT.digitWidth - 1; i++) {
-      this.data.shiftRight(0)
-    }
-
-    return this
-  }
-
-  shiftRightFillWithOne() {
-    this.recoverHiddenOne()
-    this.zeroTrail(this.FORMAT.hiddenOne)
-
-    return this
-  }
-
-  shiftRight(useExtendedBitGrid = false) {
+  shiftRight(fill: Bit = 0) {
     console.log("shifting right")
 
     const digitWidth = this.FORMAT.digitWidth
 
     for(let i = 0; i < digitWidth; i++) {
-      this.data.shiftRight(0)
+      this.data.shiftRight(i == 0 ? fill : 0)
     }
-
-    this.zeroTrail(useExtendedBitGrid)
 
     return this
   }
 
-  shiftLeft(useExtendedBitGrid = false) {
+  shiftLeft(fill: Bit = 0) {
     for (let i = 0; i < this.FORMAT.digitWidth; i++) {
-      this.data.shiftLeft()
-    }
-
-    this.zeroTrail(useExtendedBitGrid)
-
-
-    return this
-  }
-
-  zeroTrail(useExtendedBitGrid = false) {
-    for( let i = 0; i < this.ZERO_TRAIL_WIDTH - +useExtendedBitGrid; i++) {
-      this.data.shiftRight(0)
-    }
-
-    for( let i = 0; i < this.ZERO_TRAIL_WIDTH - +useExtendedBitGrid; i++) {
-      this.data.shiftLeft(0)
+      this.data.shiftLeft(i == 0 ? fill : 0)
     }
 
     return this
   }
 
-  static normalize(number: bigint, format: TMantissaFormat, ZERO_TRAIL_WIDTH: number): bigint {
+  static normalize(number: bigint, format: TMantissaFormat): bigint {
     const digitsAmount = Mantissa.computeAmountOfDigits(format)
 
     for (let i = 0; i < digitsAmount; i++) {
@@ -150,6 +88,10 @@ export class Mantissa {
     return format.bitsUsed / format.digitWidth
   }
 
+  getOverflow(): Bit {
+    return +!!Mantissa.getDigit(this.number, this.FORMAT.bitsUsed / this.FORMAT.digitWidth, this.FORMAT) as Bit
+  }
+
   /** operates on numbers without trail */
   private static getDigit(number: bigint, index: number, format: TMantissaFormat) {
     const mask = parseInt("1".repeat(format.digitWidth), 2) << (format.digitWidth * index)
@@ -161,7 +103,7 @@ export class Mantissa {
     const digitsAmount = Mantissa.computeAmountOfDigits(this.FORMAT)
     console.log("normalizing")
     for (let i = 0; i < digitsAmount; i++) {
-      if (!Mantissa.isRightDenormalized(this.rawNumber, this.FORMAT)) {
+      if (!Mantissa.isRightDenormalized(this.number, this.FORMAT)) {
         break
       }
       this.shiftLeft()
@@ -174,7 +116,8 @@ export class Mantissa {
    }
 
   add(mantissa: Mantissa): Bit {
-    return this.data.add(mantissa.data)
+    this.data.add(mantissa.data)
+    return this.getOverflow()
   }
 
   subtract(mantissa: Mantissa): Bit {

@@ -549,12 +549,12 @@ export class Register implements IRegister {
   }
 }
 
-const a = new Register(4).set(0b1010_1100_1100)
-const b = new Register(4).set(0b1000_1011_0100)
+// const a = new Register(4).set(0b1010_1100_1100)
+// const b = new Register(4).set(0b1000_1011_0100)
 
-const result = Register.multiply(a, b, EMethod.FAST_4)
+// const result = Register.multiply(a, b, EMethod.FAST_4)
 
-Register.printBeauty(result, "result")
+// Register.printBeauty(result, "result")
 
 
 
