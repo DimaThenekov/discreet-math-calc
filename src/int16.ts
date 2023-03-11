@@ -37,9 +37,9 @@ export class Register implements IRegister {
   set(dataInput: number | bigint | Byte[]): this {
     if (typeof dataInput === "number" || typeof dataInput === "bigint") {
       let data = BigInt(dataInput)
-      const maxAllowedNumber = this.MAX
-      console.assert(dataInput <= maxAllowedNumber, `number ${dataInput} can't be stored inside register with width ${this.WIDTH}
-      Max allowed number is ${maxAllowedNumber}`)
+      // const maxAllowedNumber = this.MAX
+      // console.assert(dataInput <= maxAllowedNumber, `number ${dataInput} can't be stored inside register with width ${this.WIDTH}
+      // Max allowed number is ${maxAllowedNumber}`)
 
       const mask = BigInt(Byte.MAX)
       
@@ -112,7 +112,7 @@ export class Register implements IRegister {
       }
 
       nonNull = true
-      return byte.bin
+      return (this.center == i ? "| " : "") + byte.bin;
     }).filter((value) => value != null).join(" ")
   }
 
@@ -464,11 +464,11 @@ export class Register implements IRegister {
     return this.formattedBin;
   }
 
-/*   public static divide(dividendInput: Register, dividerInput: Register) {
+  public static divide(dividendInput: Register, dividerInput: Register) {
     // init result and current reminder (dividend may be copied to current reminder)
-    const dividend = new Register(dividendInput.number)
-    const divider = new Register(dividerInput.number)
-    const currentReminder = new Register(dividend.number)
+    const dividend = new Register(dividendInput.WIDTH).set(dividendInput.numberSigned)
+    const divider = new Register(dividerInput.WIDTH).set(dividerInput.numberSigned)
+    const currentReminder = new Register(dividendInput.WIDTH)
     // check validity of division
     const semiFirstStep = Register.isDivisionValid(currentReminder, dividend, divider)
     if (!semiFirstStep[0]) {
@@ -488,12 +488,14 @@ export class Register implements IRegister {
       
       if (currentReminder.sign == divider.sign) {
         console.log("signs are equal; subtracting")
-        console.log("divider", new Byte(256 - divider.lowByte.number).bin)
-        currentReminder.subtractHigh(divider.lowByte)
+        const negative = new Register(divider.WIDTH)
+        negative.subtract(divider)
+        Register.printBeauty(negative, "negative")
+        currentReminder.addHigh(negative)
       } else {
         console.log("signs are different; adding")
         Register.printBeauty(divider, "divider")
-        currentReminder.addHigh(divider.lowByte)
+        currentReminder.addHigh(divider)
       }
 
       Register.printBeauty(currentReminder, "current reminder")
@@ -504,14 +506,13 @@ export class Register implements IRegister {
       console.log("-------------------------------------")
     }
   
-    return [result, new Register(currentReminder.highByte.number)]
+    return [result, new Register(currentReminder.WIDTH).set(currentReminder.highHalf)]
   }
 
   static isDivisionValid(currentReminder: Register, dividendInput: Register, dividerInput: Register): [boolean, boolean] {
-    console.log(dividendInput.number)
     // copy registers (they should not be mutated)
-    const dividend = new Register(dividendInput.number)
-    const divider = new Register(dividerInput.number)
+    const dividend = new Register(dividendInput.WIDTH).set(dividendInput.numberSigned)
+    const divider = new Register(dividerInput.WIDTH).set(dividendInput.numberSigned)
 
     console.log(`dividend: ${dividend.formattedBin}`)
     console.log(`divider: ${divider.formattedBin}`)
@@ -523,7 +524,7 @@ export class Register implements IRegister {
       currentReminder.shiftLeft()
       console.log(`dividend after sift: ${currentReminder.formattedBin}`)
 
-      currentReminder.subtractHigh(divider.lowByte)
+      currentReminder.subtractHigh(divider)
       // subtract divider from high byte of dividend
 
     } else { 
@@ -534,27 +535,26 @@ export class Register implements IRegister {
       currentReminder.shiftLeft()
       console.log(`result shifted ${currentReminder.formattedBin}`)
       // add divider with high byte of dividend
-      currentReminder.addHigh(divider.lowByte)
+      currentReminder.addHigh(divider)
     }
 
     console.log(`currentReminder: ${currentReminder.formattedBin}`)
 
     return [dividend.sign != currentReminder.sign, currentReminder.sign == divider.sign]
 
-  } */
+  }
 
   static printBeauty(reg: IRegister, message: string) {
     console.log(message, reg.formattedBin, reg.number.toString(), reg.numberSigned)
   }
 }
 
-// const a = new Register(4).set(0b1_00_1100_0000)
-// const b = new Register(4).set(0b1_11_1010_1110)
+const a = new Register(4).set(0b1010_1100_1100)
+const b = new Register(4).set(0b1000_1011_0100)
 
-// const a = new Register(4).set(88)
-// const b = new Register(4).set(36)
+const result = Register.multiply(a, b, EMethod.FAST_4)
+
+Register.printBeauty(result, "result")
 
 
-// const result = Register.multiply(a, b, EMethod.FAST_4)
 
-// Register.printBeauty(result, "result")
