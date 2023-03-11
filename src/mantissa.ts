@@ -28,7 +28,7 @@ export class Mantissa {
   private readonly ZERO_TRAIL_WIDTH: number
 
   get rawNumber() {
-    return this.numberWithoutTrail(this.data.number)
+    return this.numberWithoutTrail(this.data.number, this.FORMAT.hiddenOne)
   }
 
   get number() {
@@ -49,8 +49,8 @@ export class Mantissa {
     return new Register(2).set(this.number)
   }
 
-  private numberWithoutTrail(number: bigint): bigint {
-    return number >> BigInt(this.ZERO_TRAIL_WIDTH)
+  private numberWithoutTrail(number: bigint, useExtendedBitGrid: boolean = false): bigint {
+    return number >> BigInt(this.ZERO_TRAIL_WIDTH - +useExtendedBitGrid)
   }
 
   constructor(number: bigint | number, public readonly FORMAT: TMantissaFormat = F1Mantissa) {
@@ -83,7 +83,7 @@ export class Mantissa {
 
   shiftRightFillWithOne() {
     this.recoverHiddenOne()
-    this.zeroTrail()
+    this.zeroTrail(this.FORMAT.hiddenOne)
 
     return this
   }
@@ -93,7 +93,6 @@ export class Mantissa {
 
     const digitWidth = this.FORMAT.digitWidth
 
-    // ZERO_TRAIL_WIDTH is added to zero most right digit
     for(let i = 0; i < digitWidth; i++) {
       this.data.shiftRight(0)
     }
