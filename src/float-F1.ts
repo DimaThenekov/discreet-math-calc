@@ -36,7 +36,7 @@ class FloatRegister /* implements IRegister */ {
     return `${this.isNegative} ${new Byte(this.characteristic).bin} ${this.mantissa.raw}`
   }
 
-  constructor(mantissa: number, exponent: number, sign: Bit = 0, public FORMAT: TFormat = F1) {
+  constructor(mantissa: bigint, exponent: number, sign: Bit = 0, public FORMAT: TFormat = F1) {
     this.mantissa = new Mantissa(mantissa, this.FORMAT.mantissa)
     this.exponent = exponent;
     this.sign = sign
@@ -51,9 +51,7 @@ class FloatRegister /* implements IRegister */ {
   }
 
   static add(aInput: FloatRegister, bInput: FloatRegister) {
-    // @ts-ignore
     let a = new FloatRegister(aInput.mantissa.number, aInput.exponent, aInput.sign, aInput.FORMAT)
-    // @ts-ignore
     let b = new FloatRegister(bInput.mantissa.number, bInput.exponent, bInput.sign, bInput.FORMAT)
 
     console.log("adding")
@@ -69,7 +67,7 @@ class FloatRegister /* implements IRegister */ {
     const difference = a.characteristic - b.characteristic
     console.log(`exponent difference is ${difference} = ${a.characteristic} - ${b.characteristic}`)
 
-    if (difference < 0)  {
+    if (difference < 0) {
       console.log("below zero; shifting a")
       for (let i = 0; i < Math.abs(difference); i++) {
         a.mantissa.shiftRight(a.FORMAT.mantissa.hiddenOne)
@@ -155,8 +153,18 @@ class FloatRegister /* implements IRegister */ {
 // const a = new FloatRegister(0, 0, 0)
 // const b = new FloatRegister(0x13, 0, 1)
 
+// const a = new FloatRegister(0x105, 2)
+// const b = new FloatRegister(0x724, 1)
 
-// const result = FloatRegister.add(b, a)
+// const a = new FloatRegister(0b1_0101_1010_111n, 5, 0, F2)
+// const b = new FloatRegister(0b1_0110_1101_001n, 4, 1, F2)
+
+const a = new FloatRegister(0x15bn, 2)
+const b = new FloatRegister(0xb69n, 1)
+
+const result = FloatRegister.add(a, b)
+console.log(result.formattedBin)
+// const result = FloatRegister.add(a, b)
 
 // console.log(result.formattedBin)
 
