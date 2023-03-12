@@ -1,3 +1,6 @@
+
+import _ from "lodash";
+
 export type ByteBinOpResult = readonly [Bit, Byte];
 
 export type ByteBinOp = (this: Byte, b: Byte, carryIn: Bit) => ByteBinOpResult
@@ -60,13 +63,12 @@ export class Byte {
     const lengthDifference = a.length - b.length
 
     // prevent mutation
-    a = a.slice()
-    b = b.slice()
+    a = _.cloneDeep(a)
+    b = _.cloneDeep(b)
 
     for (let i = 0; i < lengthDifference; i++) {
       b.unshift(new Byte(b[0].sign ? Byte.MAX : 0))
     }
-
 
     a.reverse()
     b.reverse()

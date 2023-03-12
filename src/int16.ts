@@ -1,4 +1,5 @@
 import {Byte, Bit} from "./byte";
+import cloneDeep from "lodash/cloneDeep";
 
 enum EAction {
   SHIFT,
@@ -511,8 +512,8 @@ export class Register implements IRegister {
 
   static isDivisionValid(currentReminder: Register, dividendInput: Register, dividerInput: Register): [boolean, boolean] {
     // copy registers (they should not be mutated)
-    const dividend = new Register(dividendInput.WIDTH).set(dividendInput.numberSigned)
-    const divider = new Register(dividerInput.WIDTH).set(dividendInput.numberSigned)
+    const dividend = cloneDeep(dividendInput)
+    const divider = cloneDeep(dividerInput)
 
     console.log(`dividend: ${dividend.formattedBin}`)
     console.log(`divider: ${divider.formattedBin}`)
