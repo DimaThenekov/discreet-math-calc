@@ -343,6 +343,40 @@ describe("Register", () => {
     
   })
 
+  describe("division", () => {
+    const aReg = new Register(2)
+    const bReg = new Register(2)
+
+    it("1916 / 26 = 73; reminder = 18", () => {
+      aReg.set(1916)
+      bReg.set(26)
+
+      const [result, reminder] = Register.divide(aReg, bReg)
+
+      assert.equal(result.numberSigned, 73)
+      assert.equal(reminder.numberSigned, 18)
+    })
+
+    it("-1916 / 26 = -73; reminder = -18", () => {
+      aReg.set(-1916)
+      bReg.set(26)
+
+      const [result, reminder] = Register.divide(aReg, bReg)
+
+      assert.equal(result.numberSigned, -73)
+      assert.equal(reminder.numberSigned, -18)
+    })
+
+    it("-27 / 5 = -5; reminder = -2", () => {
+      aReg.set(-27)
+      bReg.set(5)
+
+      const [result, reminder] = Register.divide(aReg, bReg)
+
+      assert.equal(result.numberSigned, -5)
+      assert.equal(reminder.numberSigned, -2)
+    })
+  })
   
 })
 
