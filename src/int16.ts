@@ -160,24 +160,30 @@ export class Register implements IRegister {
     return carryBit
   }
 
-  addHigh(reg: Register, allowTruncation = false) {
+  addHigh(reg: Register, forceTruncation = false) {
     let carryOut: Bit = 0
-    let result: Byte[] = []
+    let result: Byte[] = [];
 
-    const canAccommodate = this.WIDTH >= reg.WIDTH * 2
-    const highHalfEmpty = new Register(reg.WIDTH).set(reg.highHalf).number == 0n
-    const isSafe = canAccommodate || (!canAccommodate && highHalfEmpty) || allowTruncation
-
-    if (isSafe) {
-      [carryOut, result] = Byte.performBinOp(this.highHalf, canAccommodate ? reg.bytes : reg.lowHalf, Byte.prototype.add)
-    } else {
-      console.assert("not safe to perform addHigh when high half is not empty and can't accommodate result")
-      throw new Error()
-    }
+    [carryOut, result] = this.withSafe(reg, forceTruncation, (safeBytes) => {
+      return Byte.performBinOp(this.highHalf, safeBytes, Byte.prototype.add)
+    })
 
     this.highHalf = result
 
     return carryOut
+  }
+
+  private withSafe<T>(reg: Register, forceTruncation = false, fun: (reg: Byte[]) => T): T {
+    const canAccommodate = this.WIDTH >= reg.WIDTH * 2
+    const isHighHalfEmpty = new Register(reg.WIDTH).set(reg.highHalf).number == 0n
+    const isSafe = canAccommodate || isHighHalfEmpty || forceTruncation
+
+    if (!isSafe) {
+      console.assert(`not safe to perform ${fun.name} when high half is not empty and can't accommodate result`)
+      throw new Error()
+    }
+
+    return fun(canAccommodate ? reg.bytes : reg.lowHalf)
   }
 
   subtract(reg: Register) {
@@ -190,20 +196,13 @@ export class Register implements IRegister {
     return carryOut
   }
 
-  subtractHigh(reg: Register, allowTruncation = false) {
+  subtractHigh(reg: Register, forceTruncation = false) {
     let carryOut: Bit = 0
-    let result: Byte[] = []
+    let result: Byte[] = [];
 
-    const canAccommodate = this.WIDTH >= reg.WIDTH * 2
-    const highHalfEmpty = new Register(reg.WIDTH).set(reg.highHalf).number == 0n
-    const isSafe = canAccommodate || (!canAccommodate && highHalfEmpty) || allowTruncation
-
-    if (isSafe) {
-      [carryOut, result] = Byte.performBinOp(this.highHalf, canAccommodate ? reg.bytes : reg.lowHalf, Byte.prototype.subtract)
-    } else {
-      console.assert("not safe to perform addHigh when high half is not empty and can't accommodate result")
-      throw new Error()
-    }
+    [carryOut, result] = this.withSafe(reg, forceTruncation, (safeBytes) => {
+      return Byte.performBinOp(this.highHalf, safeBytes, Byte.prototype.subtract)
+    })
 
     this.highHalf = result
 
