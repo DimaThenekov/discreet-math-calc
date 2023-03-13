@@ -469,13 +469,13 @@ export class Register implements IRegister {
     // init result and current reminder (dividend may be copied to current reminder)
     const dividend = new Register(dividendInput.WIDTH).set(dividendInput.numberSigned)
     const divider = new Register(dividerInput.WIDTH).set(dividerInput.numberSigned)
-    const currentReminder = new Register(dividendInput.WIDTH)
+    const currentReminder = new Register(dividendInput.WIDTH).set(dividend.numberSigned)
     // check validity of division
     const semiFirstStep = Register.isDivisionValid(currentReminder, dividend, divider)
     if (!semiFirstStep[0]) {
       throw new Error("division could not be performed")
     }
-    const result = new Register(+semiFirstStep[1])
+    const result = new Register(dividend.WIDTH / 2).set(+semiFirstStep[1])
 
     Register.printBeauty(currentReminder, "current reminder before first step")
     
@@ -492,7 +492,7 @@ export class Register implements IRegister {
         const negative = new Register(divider.WIDTH)
         negative.subtract(divider)
         Register.printBeauty(negative, "negative")
-        currentReminder.addHigh(negative)
+        currentReminder.addHigh(negative, true)
       } else {
         console.log("signs are different; adding")
         Register.printBeauty(divider, "divider")
