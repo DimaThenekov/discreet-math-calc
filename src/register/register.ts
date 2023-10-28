@@ -193,7 +193,7 @@ export class Register implements IRegister, ISnapshotable<Register> {
     return this.formattedBin;
   }
 
-  formatBeauty(message: string) {
+  formatBeauty(message: string = "") {
     return [
       message,
       this.formattedBin,

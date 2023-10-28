@@ -17,16 +17,17 @@ export const divide: IRegisterBinOp = function divide(dividendInput: Register, d
 
   // check validity of division
   const isCorrect = isDivisionValid(currentReminder, dividend, divider)
-  if (!isCorrect) {
+  if (!isCorrect[0]) {
     throw new Error("division could not be performed")
   }
+
+  steps.push(isCorrect[1])
   
   // start division
   for (let i = 0; i < Byte.LENGTH - 1; i++) {
-    const step = new Step()
-    steps.push(step)
     const stepNumber = i + 2
-    step.title = `step ${stepNumber}`
+    const step = new Step({title: `step ${stepNumber}`})
+    steps.push(step)
     
     // if equal -> subtract
     // if not -> add
@@ -52,8 +53,7 @@ export const divide: IRegisterBinOp = function divide(dividendInput: Register, d
 
   // correction
   if (reminder.sign != dividend.sign) {
-    const correctionStep = new Step()
-    correctionStep.title = "коррекция"
+    const correctionStep = new Step({title: "коррекция"})
     steps.push(correctionStep)
     if (reminder.sign == divider.sign) {
       correctionStep.withComments("знак остатка и делителя совпадают")
@@ -69,8 +69,7 @@ export const divide: IRegisterBinOp = function divide(dividendInput: Register, d
 
 function isDivisionValid(currentReminder: Register, dividendInput: Register, dividerInput: Register): [boolean, Step] {
   // copy registers (they should not be mutated)
-  const semiFirstStep = new Step()
-  semiFirstStep.title = "пробное вычитание"
+  const semiFirstStep = new Step({title: "пробное вычитание"})
   const dividend = dividendInput.snapshot()
   const divider = dividerInput.snapshot()
   const currentReminderHigh = new Register(currentReminder.highHalf)
@@ -98,7 +97,18 @@ function isDivisionValid(currentReminder: Register, dividendInput: Register, div
   const firstBit = +(currentReminder.sign == divider.sign) as Bit
   currentReminder.shiftRight()
   currentReminder.shiftLeft(firstBit)
-  const step = new Step()
-  return dividend.sign != currentReminder.sign
+  return [dividend.sign != currentReminder.sign, semiFirstStep]
 
 }
+
+// const aBytes = Byte.fill(2)
+// const bBytes = Byte.fill(2)
+
+// const a = new Register(aBytes).set(1916)
+// const b = new Register(bBytes).set(-26)
+// const result = divide(a, b)
+
+// console.log(result.result[0].formatBeauty("result"))
+// console.log(result.result[1].formatBeauty("reminder"))
+
+  
