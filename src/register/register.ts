@@ -1,5 +1,5 @@
 import { Byte, Bit } from "../byte";
-import cloneDeep from "lodash/cloneDeep";
+import { cloneDeep } from "lodash";
 
 export interface ISnapshotable<T> {
   snapshot(): T
