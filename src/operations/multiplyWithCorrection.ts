@@ -61,7 +61,7 @@ export const multiplyWithCorrection: IRegisterBinOp = function multiplyWithCorre
 function correction(result: Register, multiplicand: Register): IResult {
   const correction = cloneDeep(multiplicand).set(-multiplicand.number)
   
-  const step = new Step(new OperandDescription("C", correction, "число на которое корректируем. -1 * на множитель"))
+  const step = new Step({operandDescription: [new OperandDescription("C", correction, "число на которое корректируем. -1 * на множитель")]})
   step.title = "correction"
 
   const resultHigh = new Register(result.highHalf)

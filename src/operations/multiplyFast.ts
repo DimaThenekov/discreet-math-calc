@@ -1,19 +1,22 @@
 import { Bit, Byte } from "../byte"
 import { Register } from "../register/register"
-import { IRegisterBinOp } from "../base"
+import { IRegisterBinOp, OperandDescription, Step } from "../base"
 
 export const multiplyFast2: IRegisterBinOp = function multiplyFast2(a: Register, b: Register) {
   const result = a.snapshot().set(0)
 
   let correction: Bit = 0
   let action = 0
+  const steps: Step[] = []
   for (let i = 0; i < (Byte.LENGTH * b.WIDTH) / 2; i++ ) {
-    console.log(`---------------------step ${i + 1}---------------------`)
-    action = b.getByte(0).add(new Byte(correction))[1].sliceNumber(6, 8)
+    const currentStep = new Step({title: `Step ${i + 1}`})
+    
+    action = new Byte(b.getByte(0).sliceNumber(6) + correction).sliceNumber(6)
     b.shiftRight()
     b.shiftRight()
 
-    console.log(`action ${action.toString(2)} ${correction}:`)
+    // console.log(`action ${action.toString(2)} ${correction}:`)
+    currentStep.withComments(`action ${action.toString}; correction: ${correction}`)
 
     switch (action) {
       case 0b00:
@@ -29,22 +32,32 @@ export const multiplyFast2: IRegisterBinOp = function multiplyFast2(a: Register,
         break;
     }
 
+    currentStep.operandDescription.push(new OperandDescription("СЧП", result))
+
     result.shiftRight()
     result.shiftRight()
 
-    Register.printBeauty(result, "shifted           ")
+    currentStep.operandDescription.push(new OperandDescription("СЧП->2", result))
 
     correction = +(action == 3 || (action == 0 && correction == 1)) as Bit
+    steps.push(currentStep)
   }
 
+  // correction for last step
   if (action == 1) {
-    result.addHigh(a)
+    const correctionStep = new Step({title: "Коррекция"})
+    correctionStep.operandDescription.push(new OperandDescription("А", a))
+    // create view over high half of result byte storage
+    const resultHighHalf = new Register(result.highHalf);
+    // result is wider than operands exactly in a half
+    resultHighHalf.add(a)
+    correctionStep.operandDescription.push(new OperandDescription("СЧП", result))
   }
-
-  return result
+  
+  return {result: [result], steps}
 }
 
-export const multiplyFast4: IRegisterBinOp = function multiplyFast4(a: Register, b: Register) {
+/* export const multiplyFast4: IRegisterBinOp = function multiplyFast4(a: Register, b: Register) {
   const result = a.snapshot().set(0)
 
   let correction: Bit = 0
@@ -119,10 +132,11 @@ export const multiplyFast4: IRegisterBinOp = function multiplyFast4(a: Register,
   }
 
   return result
-}
+} */
 
 function shiftAddAction(result: Register, a: Register, negative: boolean, shiftBy: number) {
-  const add = new Register(a.WIDTH*2)
+  // to display subtracted value in clear way
+  const add = new Register(Byte.fill(a.WIDTH)).set(0)
   if (negative) {
     add.subtract(a)
   } else {
@@ -133,12 +147,23 @@ function shiftAddAction(result: Register, a: Register, negative: boolean, shiftB
     add.shiftLeft()
   }
   const actionName = negative ? "subtract" : "add"
-  const resultName = negative ? "subtraction" : "addition"
+  // const resultName = negative ? "subtraction" : "addition"
 
-  Register.printBeauty(add, `shift left ${shiftBy != 1 ? shiftBy + " " : ""}and ${actionName}`)
-  result.addHigh(add, true)
-  Register.printBeauty(result, `${resultName} result   `)
+  const operandDescriptions: OperandDescription<Register>[] = []
+  operandDescriptions.push(new OperandDescription("А", add, `shift left ${shiftBy != 1 ? shiftBy + " " : ""}and ${actionName}`))
+  // for 12 bit operands 32 bits result is required
+  const resultHighHalf = new Register(result.highHalf)
+  const addLowHalf = new Register(add.lowHalf)
+  resultHighHalf.add(addLowHalf)
   return result
 }
 
+const aBytes = Byte.fill(4)
+const bBytes = Byte.fill(2)
+
+const a = new Register(aBytes).set(0x980)
+const b = new Register(bBytes).set(0x1ec)
+const result = multiplyFast2(a, b)
+
+console.log(result.result[0].formatBeauty("result"))
 

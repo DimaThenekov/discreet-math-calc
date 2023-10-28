@@ -193,6 +193,11 @@ export class Register implements IRegister, ISnapshotable<Register> {
     return this.formattedBin;
   }
 
+  /**
+   * 
+   * @param message prefix to prepend to beautiful output
+   * @returns formatted string
+   */
   formatBeauty(message: string = "") {
     return [
       message,

@@ -1,6 +1,6 @@
 import _ from "lodash";
 
-export type ByteBinOpResult = readonly [Bit, Byte];
+export type ByteBinOpResult = {readonly carryOut: Bit, readonly result: Byte};
 
 export type ByteBinOp = (this: Byte, b: Byte, carryIn: Bit) => ByteBinOpResult;
 
@@ -99,7 +99,7 @@ export class Byte {
     let carryBit: Bit = 0;
 
     for (let i = 0; i < b.length; i++) {
-      const [carryOut, resultByte] = op.call(a[i], b[i], carryBit) as Omit<
+      const {carryOut: carryOut, result: resultByte} = op.call(a[i], b[i], carryBit) as Omit<
         ByteBinOpResult,
         never
       >;
@@ -115,14 +115,14 @@ export class Byte {
     const result = this.number + byte.number + carryIn;
     const carryOut = result > Byte.MAX;
 
-    return [+carryOut, this.set(result & Byte.MAX)] as ByteBinOpResult;
+    return {carryOut: +carryOut, result: this.set(result & Byte.MAX)} as ByteBinOpResult;
   }
 
   subtract(byte: Byte, carryIn: Bit = 0): ByteBinOpResult {
     const result = this.number - byte.number - carryIn;
     const carryOut = result < 0;
 
-    return [+carryOut, this.set(result & Byte.MAX)] as ByteBinOpResult;
+    return {carryOut: +carryOut, result: this.set(result & Byte.MAX)} as ByteBinOpResult;
   }
 
   shiftRight(fill: Bit = this.sign) {
