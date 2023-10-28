@@ -1,8 +1,10 @@
 import { Bit, Byte } from "../byte"
 import { Register } from "../register/register"
-import { IRegisterBinOp, OperandDescription, Step } from "../base"
+import { IRegisterBinOp, IResult, OperandDescription, Step } from "../base"
 
 export const multiplyFast2: IRegisterBinOp = function multiplyFast2(a: Register, b: Register) {
+  validateInput(a, b)
+
   const result = a.snapshot().set(0)
 
   let correction: Bit = 0
@@ -22,13 +24,13 @@ export const multiplyFast2: IRegisterBinOp = function multiplyFast2(a: Register,
       case 0b00:
         break;
       case 0b01:
-        shiftAddAction(result, a, false, 0)
+        currentStep.operandDescription.push(...shiftAddAction(result, a, false, 0))
         break;
       case 0b10:
-        shiftAddAction(result, a, false, 1)
+        currentStep.operandDescription.push(...shiftAddAction(result, a, false, 1))
         break;
       case 0b11:
-        shiftAddAction(result, a, true, 0)
+        currentStep.operandDescription.push(...shiftAddAction(result, a, true, 0))
         break;
     }
 
@@ -57,22 +59,25 @@ export const multiplyFast2: IRegisterBinOp = function multiplyFast2(a: Register,
   return {result: [result], steps}
 }
 
-/* export const multiplyFast4: IRegisterBinOp = function multiplyFast4(a: Register, b: Register) {
+export const multiplyFast4: IRegisterBinOp = function multiplyFast4(a: Register, b: Register): IResult {
+  validateInput(a, b)
   const result = a.snapshot().set(0)
 
+  // should be preserved between steps
   let correction: Bit = 0
-  let internalCorrection: Bit = 0
 
+  const steps: Step[] = []
 
   let actionLow = 0
   let actionHigh = 0
   for (let i = 0; i < (Byte.LENGTH * b.WIDTH) / 4; i++ ) {
-    console.log(`---------------------step ${i + 1}---------------------`)
+    const currentStep = new Step({title: `Step ${i + 1}`})
     
-    const actionByteWithCorrection = b.getByte(0)!.sliceToByte(4, 8, true).add(new Byte(correction))[1]
-    const actionByteWithCorrectionTruncated = actionByteWithCorrection.sliceToByte(4, 8, true)
-    actionLow = actionByteWithCorrectionTruncated.sliceNumber(6,8, true)
-    internalCorrection = +(actionLow == 0b11) as Bit
+    // slice to byte makes copt of byte
+    const actionByteWithCorrection = b.getByte(0).sliceToByte(4).add(new Byte(correction)).result
+    const actionByteWithCorrectionTruncated = actionByteWithCorrection.sliceToByte(4)
+    actionLow = actionByteWithCorrectionTruncated.sliceNumber(6)
+    const internalCorrection = +(actionLow == 0b11) as Bit
     
     actionHigh = (actionByteWithCorrectionTruncated.sliceNumber(4, 6, true) + internalCorrection) & 0b11
     
@@ -85,35 +90,35 @@ export const multiplyFast2: IRegisterBinOp = function multiplyFast2(a: Register,
     b.shiftRight()
     b.shiftRight()
 
-    console.log(`actionLow ${actionLow.toString(2)} ${correction}:`)
+    currentStep.withComments(`actionLow ${actionLow.toString(2)} correction: ${correction}:`)
 
     switch (actionLow) {
       case 0b00:
         break;
       case 0b01:
-        shiftAddAction(result, a, false, 0)
+        currentStep.operandDescription.push(...shiftAddAction(result, a, false, 0))
         break;
       case 0b10:
-        shiftAddAction(result, a, false, 1)
+        currentStep.operandDescription.push(...shiftAddAction(result, a, false, 1))
         break;
       case 0b11:
-        shiftAddAction(result, a, true, 0)
+        currentStep.operandDescription.push(...shiftAddAction(result, a, true, 0))
         break;
     }
 
-    console.log(`actionHigh ${actionHigh.toString(2)} ${internalCorrection}:`)
+    currentStep.withComments(`actionHigh ${actionHigh.toString(2)} internal correction: ${internalCorrection}:`)
 
     switch ((actionHigh) & 0b11) {
       case 0b00:
         break;
       case 0b01:
-        shiftAddAction(result, a, false, 2)
+        currentStep.operandDescription.push(...shiftAddAction(result, a, false, 2))
         break;
       case 0b10:
-        shiftAddAction(result, a, false, 3)
+        currentStep.operandDescription.push(...shiftAddAction(result, a, false, 3))
         break;
       case 0b11:
-        shiftAddAction(result, a, true, 2)
+        currentStep.operandDescription.push(...shiftAddAction(result, a, true, 2))
         break;
     }
 
@@ -122,17 +127,22 @@ export const multiplyFast2: IRegisterBinOp = function multiplyFast2(a: Register,
     result.shiftRight()
     result.shiftRight()
 
-
-    Register.printBeauty(result, "shifted           ")
-
+    currentStep.operandDescription.push(new OperandDescription("СЧП->4", result))
+    steps.push(currentStep)
   }
 
   if (actionLow == 1) {
-    result.addHigh(a)
+    const correctionStep = new Step({title: "Коррекция"})
+    correctionStep.operandDescription.push(new OperandDescription("А", a))
+    const resultHighHalf = new Register(result.highHalf)
+    resultHighHalf.add(a)
+    correctionStep.operandDescription.push(new OperandDescription("СЧП", result))
+
+    steps.push(correctionStep)
   }
 
-  return result
-} */
+  return {result: [result], steps}
+}
 
 function shiftAddAction(result: Register, a: Register, negative: boolean, shiftBy: number) {
   // to display subtracted value in clear way
@@ -150,20 +160,28 @@ function shiftAddAction(result: Register, a: Register, negative: boolean, shiftB
   // const resultName = negative ? "subtraction" : "addition"
 
   const operandDescriptions: OperandDescription<Register>[] = []
-  operandDescriptions.push(new OperandDescription("А", add, `shift left ${shiftBy != 1 ? shiftBy + " " : ""}and ${actionName}`))
+  operandDescriptions.push(new OperandDescription(`${negative ? "-" : ""}${shiftBy > 0 ? (2 ** shiftBy) : "" }А`, add, `shift left ${shiftBy > 0 ? shiftBy + " " : ""}and ${actionName}`))
   // for 12 bit operands 32 bits result is required
   const resultHighHalf = new Register(result.highHalf)
   const addLowHalf = new Register(add.lowHalf)
   resultHighHalf.add(addLowHalf)
-  return result
+  return operandDescriptions
 }
 
-const aBytes = Byte.fill(4)
-const bBytes = Byte.fill(2)
+const aBytes = Byte.fill(8)
+const bBytes = Byte.fill(4)
 
-const a = new Register(aBytes).set(0x980)
-const b = new Register(bBytes).set(0x1ec)
-const result = multiplyFast2(a, b)
+const a = new Register(aBytes).set(0b10011_0000_000)
+const b = new Register(bBytes).set(0b11110_1011_100)
+const result = multiplyFast4(a, b)
 
+console.dir(result.steps, {depth: 4})
 console.log(result.result[0].formatBeauty("result"))
 
+
+function validateInput(a: Register, b: Register) {
+  console.assert(a.WIDTH == b.WIDTH * 2, "width of first operand should be equal to b.WIDTH * 2")
+  console.assert(a.numberSigned >= 0, "both operands should be positive or zero!")
+  console.assert(b.numberSigned >= 0, "both operands should be positive or zero!")
+
+}
