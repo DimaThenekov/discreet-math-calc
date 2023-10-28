@@ -1,5 +1,5 @@
 import { Bit, Byte } from "./byte";
-import { Register } from "./int16";
+import { Register } from "./register/register";
 
 type TRawMantissaTuple = [Byte, Byte]
 

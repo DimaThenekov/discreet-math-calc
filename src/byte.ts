@@ -8,25 +8,51 @@ export type Bit = 0 | 1;
 type RawByte = [Bit, Bit, Bit, Bit, Bit, Bit, Bit, Bit];
 export type halfRawByte = [Bit, Bit, Bit, Bit];
 
+declare global {
+  interface Number {
+    /** Lowest bit has index 0 */
+    getBit(index: number): Bit;
+  }
+}
+
+Number.prototype.getBit = function getBit(index: number) {
+  return +((this.valueOf() & (1 << index)) > 0) as Bit;
+};
+
+/**
+ * piece of *mutable* data
+ */
 export class Byte {
-  private data: RawByte;
+  protected data: RawByte = [0, 0, 0, 0, 0, 0, 0, 0];
   static readonly LENGTH = 8;
   static readonly MAX = 2 ** Byte.LENGTH - 1;
-  constructor(data: number) {
-    const input = data
-      .toString(2)
-      .padStart(Byte.LENGTH, "0")
-      .split("")
-      .map((bit) => parseInt(bit, 2));
-    const isRawByte = this.isRawByte(input);
+  constructor(data: number = 0) {
+    this.set(data);
+  }
 
-    console.assert(isRawByte, `${input} is not a byte`);
-
-    if (isRawByte) {
-      this.data = input;
-    } else {
-      throw new TypeError(`${input} is not a byte`);
+  protected static numberToRawByte(n: number): RawByte {
+    // check if data is byte (has desired length)
+    if (!Byte.canContain(n)) {
+      throw new Error(
+        `number: ${n} can not be contained inside byte. Max allowed value is: ${Byte.MAX}`
+      );
     }
+    // take each bit from lowest to highest
+    const newRawByte: Bit[] = [];
+    for (let i = 0; i < Byte.LENGTH; i++) {
+      newRawByte.unshift(n.getBit(i));
+    }
+    console.assert(
+      newRawByte.length == Byte.LENGTH,
+      `trying to create rawByte with length ${newRawByte.length}. Length should be ${Byte.LENGTH}`
+    );
+    return newRawByte as RawByte;
+  }
+
+  private static canContain(number: number) {
+    const mask = ~Byte.MAX;
+    const nonDataPart = number & mask;
+    return (nonDataPart ^ mask) == 0 || (nonDataPart ^ 0) == 0;
   }
 
   get highHalf(): number {
@@ -51,14 +77,6 @@ export class Byte {
     );
   }
 
-  private isRawByte(data: number[]): data is RawByte {
-    return data.length == Byte.LENGTH && data.every(Byte.isBit);
-  }
-
-  private static isBit(num: number): num is Bit {
-    return num == 0 || num == 1;
-  }
-
   static performBinOp(a: Byte[], b: Byte[], op: ByteBinOp): [Bit, Byte[]] {
     console.assert(
       a.length >= b.length,
@@ -67,6 +85,7 @@ export class Byte {
     const lengthDifference = a.length - b.length;
 
     // prevent mutation
+    const result = a
     a = _.cloneDeep(a);
     b = _.cloneDeep(b);
 
@@ -79,8 +98,6 @@ export class Byte {
 
     let carryBit: Bit = 0;
 
-    const result: Byte[] = [];
-
     for (let i = 0; i < b.length; i++) {
       const [carryOut, resultByte] = op.call(a[i], b[i], carryBit) as Omit<
         ByteBinOpResult,
@@ -88,7 +105,7 @@ export class Byte {
       >;
       carryBit = carryOut;
 
-      result.unshift(resultByte);
+      result[result.length - i - 1].set(resultByte.number);
     }
 
     return [carryBit, result];
@@ -98,14 +115,14 @@ export class Byte {
     const result = this.number + byte.number + carryIn;
     const carryOut = result > Byte.MAX;
 
-    return [+carryOut, new Byte(result & Byte.MAX)] as ByteBinOpResult;
+    return [+carryOut, this.set(result & Byte.MAX)] as ByteBinOpResult;
   }
 
   subtract(byte: Byte, carryIn: Bit = 0): ByteBinOpResult {
     const result = this.number - byte.number - carryIn;
     const carryOut = result < 0;
 
-    return [+carryOut, new Byte(result & Byte.MAX)] as ByteBinOpResult;
+    return [+carryOut, this.set(result & Byte.MAX)] as ByteBinOpResult;
   }
 
   shiftRight(fill: Bit = this.sign) {
@@ -195,6 +212,11 @@ export class Byte {
     return this.data[Byte.computeIndex(index)];
   }
 
+  set(number: number) {
+    this.data = Byte.numberToRawByte(number);
+    return this;
+  }
+
   setBit(index: number, bit: Bit) {
     Byte.checkIndex(index);
     this.data[Byte.computeIndex(index)] = bit;
@@ -215,10 +237,19 @@ export class Byte {
     width = width ?? number > Byte.MAX ? 16 : 8;
     return number >= 0 ? number : 2 ** width - number;
   }
+
+  static fill(amount: number): Byte[] {
+    const bytes: Byte[] = []
+    
+    for (let i = 0; i < amount; i++) {
+      bytes.push(new Byte())
+    }
+
+    return bytes
+  }
 }
 
 // const test = new Byte(0b11110001)
 // const sliced = test.sliceToByte(3, 7)
 // const sliced = test.sliceToByte(1)
-
 // console.log(sliced.bin)

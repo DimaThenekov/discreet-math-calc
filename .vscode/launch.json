@@ -5,8 +5,17 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "byte",
+      "program": "${workspaceFolder}/src/byte.ts",
+      "request": "launch",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "node"
+    },
+    {
       "name": "register",
-      "program": "${workspaceFolder}/src/int16.ts",
+      "program": "${workspaceFolder}/src/register/register.ts",
       "request": "launch",
       "skipFiles": [
         "<node_internals>/**"
