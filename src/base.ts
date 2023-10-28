@@ -47,7 +47,7 @@ export class Step {
   }
 
   withComments(...comments: TComment[]) {
-    this.comments.concat(comments)
+    this.comments = this.comments.concat(comments)
     return this
   }
 }
