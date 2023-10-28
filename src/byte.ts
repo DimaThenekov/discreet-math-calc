@@ -1,18 +1,17 @@
-
 import _ from "lodash";
 
 export type ByteBinOpResult = readonly [Bit, Byte];
 
-export type ByteBinOp = (this: Byte, b: Byte, carryIn: Bit) => ByteBinOpResult
+export type ByteBinOp = (this: Byte, b: Byte, carryIn: Bit) => ByteBinOpResult;
 
 export type Bit = 0 | 1;
 type RawByte = [Bit, Bit, Bit, Bit, Bit, Bit, Bit, Bit];
-export type halfRawByte = [Bit ,Bit, Bit, Bit]
+export type halfRawByte = [Bit, Bit, Bit, Bit];
 
 export class Byte {
   private data: RawByte;
-  static readonly LENGTH = 8
-  static readonly MAX = 2**Byte.LENGTH-1
+  static readonly LENGTH = 8;
+  static readonly MAX = 2 ** Byte.LENGTH - 1;
   constructor(data: number) {
     const input = data
       .toString(2)
@@ -31,23 +30,25 @@ export class Byte {
   }
 
   get highHalf(): number {
-    return this.sliceNumber(0, Byte.LENGTH / 2)
+    return this.sliceNumber(0, Byte.LENGTH / 2);
   }
 
   get highHalfToByte() {
-    return this.sliceToByte(0, Byte.LENGTH / 2, true)
+    return this.sliceToByte(0, Byte.LENGTH / 2, true);
   }
 
   get lowHalf(): number {
-    return this.sliceNumber(Byte.LENGTH / 2)
+    return this.sliceNumber(Byte.LENGTH / 2);
   }
 
   get lowHalfToByte() {
-    return this.sliceToByte(Byte.LENGTH / 2, Byte.LENGTH, true)
+    return this.sliceToByte(Byte.LENGTH / 2, Byte.LENGTH, true);
   }
 
   swap() {
-    return new Byte((this.lowHalf << (Byte.LENGTH / 2) | this.highHalfToByte.number))
+    return new Byte(
+      (this.lowHalf << (Byte.LENGTH / 2)) | this.highHalfToByte.number
+    );
   }
 
   private isRawByte(data: number[]): data is RawByte {
@@ -59,37 +60,43 @@ export class Byte {
   }
 
   static performBinOp(a: Byte[], b: Byte[], op: ByteBinOp): [Bit, Byte[]] {
-    console.assert(a.length >= b.length, "can't accommodate result in register")
-    const lengthDifference = a.length - b.length
+    console.assert(
+      a.length >= b.length,
+      "can't accommodate result in register"
+    );
+    const lengthDifference = a.length - b.length;
 
     // prevent mutation
-    a = _.cloneDeep(a)
-    b = _.cloneDeep(b)
+    a = _.cloneDeep(a);
+    b = _.cloneDeep(b);
 
     for (let i = 0; i < lengthDifference; i++) {
-      b.unshift(new Byte(b[0].sign ? Byte.MAX : 0))
+      b.unshift(new Byte(b[0].sign ? Byte.MAX : 0));
     }
 
-    a.reverse()
-    b.reverse()
+    a.reverse();
+    b.reverse();
 
-    let carryBit: Bit = 0
+    let carryBit: Bit = 0;
 
-    const result: Byte[] = []
+    const result: Byte[] = [];
 
     for (let i = 0; i < b.length; i++) {
-      const [carryOut, resultByte] = op.call(a[i], b[i], carryBit) as Omit<ByteBinOpResult, never>;
-      carryBit = carryOut
+      const [carryOut, resultByte] = op.call(a[i], b[i], carryBit) as Omit<
+        ByteBinOpResult,
+        never
+      >;
+      carryBit = carryOut;
 
-      result.unshift(resultByte)
+      result.unshift(resultByte);
     }
 
-    return [carryBit, result]
+    return [carryBit, result];
   }
 
   add(byte: Byte, carryIn: Bit = 0): ByteBinOpResult {
     const result = this.number + byte.number + carryIn;
-    const carryOut = result > (Byte.MAX);
+    const carryOut = result > Byte.MAX;
 
     return [+carryOut, new Byte(result & Byte.MAX)] as ByteBinOpResult;
   }
@@ -98,7 +105,7 @@ export class Byte {
     const result = this.number - byte.number - carryIn;
     const carryOut = result < 0;
 
-    return [+carryOut, new Byte(result & (Byte.MAX))] as ByteBinOpResult;
+    return [+carryOut, new Byte(result & Byte.MAX)] as ByteBinOpResult;
   }
 
   shiftRight(fill: Bit = this.sign) {
@@ -109,37 +116,37 @@ export class Byte {
   }
 
   shiftRightArithmetic() {
-    const shiftedBit = this.data.pop()
-    this.data.splice(1, 0, 0)
+    const shiftedBit = this.data.pop();
+    this.data.splice(1, 0, 0);
 
-    return shiftedBit as Bit
+    return shiftedBit as Bit;
   }
 
   shiftLeft(fill: Bit = 0) {
-    const shiftedBit = this.data.shift()
-    this.data.push(fill)
+    const shiftedBit = this.data.shift();
+    this.data.push(fill);
 
-    return shiftedBit as Bit
+    return shiftedBit as Bit;
   }
 
   private static toNumber(input: string) {
-    return parseInt(input, 2)
+    return parseInt(input, 2);
   }
 
   get number() {
-    return Byte.toNumber(this.bin)
+    return Byte.toNumber(this.bin);
   }
- 
+
   get absolute() {
     if (this.sign) {
-      return (2 ** Byte.LENGTH) - this.number
+      return 2 ** Byte.LENGTH - this.number;
     }
 
-    return this.number
+    return this.number;
   }
 
   get absoluteToByte() {
-    return new Byte(this.absolute)
+    return new Byte(this.absolute);
   }
 
   get bin() {
@@ -151,37 +158,57 @@ export class Byte {
   }
 
   set sign(sign: Bit) {
-    this.setBit(7, sign)
+    this.setBit(7, sign);
   }
 
-  sliceNumber(start: number, end: number = Byte.LENGTH, shouldEndShift = false): number {
-    console.assert(start >= 0 && start < end, `start should be in range: 0 <= start < ${end}; start = ${start}`)
-    console.assert(end <= Byte.LENGTH, `end should be lower than byte length: ${end} <= ${Byte.LENGTH}`)
-    const endShift = Byte.LENGTH - end
-    return (this.number & (((Byte.MAX >> (start + endShift)) << (endShift)))) >> (shouldEndShift ? endShift : 0)
+  sliceNumber(
+    start: number,
+    end: number = Byte.LENGTH,
+    shouldEndShift = false
+  ): number {
+    console.assert(
+      start >= 0 && start < end,
+      `start should be in range: 0 <= start < ${end}; start = ${start}`
+    );
+    console.assert(
+      end <= Byte.LENGTH,
+      `end should be lower than byte length: ${end} <= ${Byte.LENGTH}`
+    );
+    const endShift = Byte.LENGTH - end;
+    return (
+      (this.number & ((Byte.MAX >> (start + endShift)) << endShift)) >>
+      (shouldEndShift ? endShift : 0)
+    );
   }
 
-  sliceToByte(start: number, end: number = Byte.LENGTH, shouldEndShift = false) {
-    return new Byte(this.sliceNumber(start, end, shouldEndShift))
+  sliceToByte(
+    start: number,
+    end: number = Byte.LENGTH,
+    shouldEndShift = false
+  ) {
+    return new Byte(this.sliceNumber(start, end, shouldEndShift));
   }
 
   /** Numbering start from the least significant bit (2**0) */
   bit(index: number) {
-    Byte.checkIndex(index)
-    return this.data[Byte.computeIndex(index)]
+    Byte.checkIndex(index);
+    return this.data[Byte.computeIndex(index)];
   }
 
   setBit(index: number, bit: Bit) {
-     Byte.checkIndex(index);
-     this.data[Byte.computeIndex(index)] = bit
+    Byte.checkIndex(index);
+    this.data[Byte.computeIndex(index)] = bit;
   }
 
   private static checkIndex(index: number) {
-    console.assert(index >= 0 && index < Byte.LENGTH, `byte has only ${Byte.LENGTH} bits. trying to access: ${index}`)
+    console.assert(
+      index >= 0 && index < Byte.LENGTH,
+      `byte has only ${Byte.LENGTH} bits. trying to access: ${index}`
+    );
   }
 
   private static computeIndex(index: number) {
-    return Byte.LENGTH - index - 1
+    return Byte.LENGTH - index - 1;
   }
 
   static twosComplement(number: number, width?: number): number {
