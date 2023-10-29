@@ -41,6 +41,7 @@ export const multiplyBute: IRegisterBinOp = function multiplyBute(
         );
         resultHigh.add(a);
       } else {
+        step.operandDescription.push(new OperandDescription("A[доп]", a, "вычитаем из старших разрядов СЧП"));
         resultHigh.subtract(a);
       }
       step.operandDescription.push(
