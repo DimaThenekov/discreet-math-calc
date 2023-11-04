@@ -19,7 +19,8 @@ export default defineConfig([
   },
   {
     input: "./index.ts",
-    output: [{ file: "dist/index.d.ts", format: "es" }],
+    output: [{ file: "dist/target/esm/index.d.ts", format: "es" },
+             { file: "dist/target/commonjs/index.d.ts", format: "commonjs"}],
     plugins: [dts()],
   },
 ]);
