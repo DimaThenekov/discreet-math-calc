@@ -76,7 +76,7 @@ export const divide: IRegisterBinOp = function divide(dividendInput: Register, d
 
 function isDivisionValid(currentReminder: Register, dividendInput: Register, dividerInput: Register): [boolean, Step] {
   // copy registers (they should not be mutated)
-  const semiFirstStep = new Step({title: "пробное вычитание"})
+  const semiFirstStep = new Step({ title: "пробное вычитание/сложение" })
   const dividend = dividendInput.snapshot()
   const divider = dividerInput.snapshot()
   const currentReminderHigh = new Register(currentReminder.highHalf)
@@ -87,25 +87,33 @@ function isDivisionValid(currentReminder: Register, dividendInput: Register, div
     // left shift dividend by one bit
     currentReminder.shiftLeft()
     semiFirstStep.operandDescription.push(new OperandDescription("<-R", currentReminder))
+    const BLow = new Register(Byte.fill(divider.WIDTH)).set(0)
+    BLow.subtract(divider)
 
+    semiFirstStep.operandDescription.push(new OperandDescription("B[доп]", BLow))
     currentReminderHigh.subtract(divider)
     semiFirstStep.operandDescription.push(new OperandDescription("R[1]", currentReminder, "после вычитания"))
     // subtract divider from high byte of dividend
-
-  } else { 
+  } else {
+    semiFirstStep.withComments("знаки делимого и делителя разные")
     // add divider with low byte of dividend
+    const BLow = new Register(Byte.fill(divider.WIDTH * 2)).set(0)
+    BLow.add(divider)
+    semiFirstStep.operandDescription.push(new OperandDescription("B[пр]", BLow));
     currentReminder.add(divider);
+    semiFirstStep.operandDescription.push(new OperandDescription("R[1]", currentReminder));
     // left shift result by 1 bit
     currentReminder.shiftLeft()
+    semiFirstStep.operandDescription.push(new OperandDescription("<-R", currentReminder));
     // add divider with high byte of dividend
+    semiFirstStep.operandDescription.push(new OperandDescription("B[пр]", divider))
     currentReminderHigh.add(divider)
+    semiFirstStep.operandDescription.push(new OperandDescription("R[1]", currentReminder))
   }
-
   const firstBit = +(currentReminder.sign == divider.sign) as Bit
   currentReminder.shiftRight()
   currentReminder.shiftLeft(firstBit)
   return [dividend.sign != currentReminder.sign, semiFirstStep]
-
 }
 
 // const aBytes = Byte.fill(2)
