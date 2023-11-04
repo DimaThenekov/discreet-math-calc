@@ -13,6 +13,7 @@ export default defineConfig([
       {
         dir: "dist/target/commonjs",
         format: "commonjs",
+        sourcemap: "inline"
       },
     ],
     plugins: [typescript()],

@@ -3,6 +3,7 @@
   "version": "1.2.0",
   "description": "",
   "main": "dist/index.js",
+  "files": ["dist/target/esm"],
   "types": "./src/index.ts",
   "private": true,
   "scripts": {
