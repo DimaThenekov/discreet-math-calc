@@ -1,6 +1,6 @@
-import { Bit, Byte } from "../byte";
-import { Register, RegisterWithCursor } from "../register/register";
-import { IRegisterBinOp, OperandDescription, Step } from "../base";
+import { Bit, Byte } from "../byte.js";
+import { Register, RegisterWithCursor } from "../register/register.js";
+import { IRegisterBinOp, OperandDescription, Step } from "../base.js";
 
 export const divide: IRegisterBinOp = function divide(dividendInput: Register, dividerInput: Register) {
   // init result and current reminder (dividend may be copied to current reminder)
@@ -54,14 +54,21 @@ export const divide: IRegisterBinOp = function divide(dividendInput: Register, d
   // correction
   if (reminder.sign != dividend.sign) {
     const correctionStep = new Step({title: "коррекция"})
-    steps.push(correctionStep)
+
     if (reminder.sign == divider.sign) {
+      const subtraction = new Register(Byte.fill(divider.WIDTH)).set(0)
+      subtraction.subtract(divider)
       correctionStep.withComments("знак остатка и делителя совпадают")
+      correctionStep.operandDescription.push(new OperandDescription("B", subtraction, "вычитаем делитель из остатка"))
       reminder.subtract(divider)
     } else {
+      correctionStep.withComments("знак остатка и делителя различаются - сложение")
+      correctionStep.operandDescription.push(new OperandDescription("B", divider, "прибавляем делитель к остатку"))
       reminder.add(divider)
     }
 
+    correctionStep.operandDescription.push(new OperandDescription("Остаток", reminder, "остаток после применения коррекции"))
+    steps.push(correctionStep)
   }
 
   return {result: [result, reminder], steps}
@@ -107,6 +114,10 @@ function isDivisionValid(currentReminder: Register, dividendInput: Register, div
 // const a = new Register(aBytes).set(1916)
 // const b = new Register(bBytes).set(-26)
 // const result = divide(a, b)
+
+// console.dir(result.steps, {
+//   depth: 5,
+// })
 
 // console.log(result.result[0].formatBeauty("result"))
 // console.log(result.result[1].formatBeauty("reminder"))

@@ -1,4 +1,4 @@
-import { Byte, Bit } from "../byte";
+import { Byte, Bit } from "../byte.js";
 import { cloneDeep } from "lodash";
 
 export interface ISnapshotable<T> {
