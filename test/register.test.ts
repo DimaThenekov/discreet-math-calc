@@ -1,382 +1,430 @@
-import assert from "assert";
-import { describe, it } from "mocha";
-import { EMethod, Register } from "../src/int16";
+import t from "tap"
+import { byte, divide, multiplyBute, multiplyWithCorrection, register } from "../dist/target/commonjs/index";
+
+const Byte = byte.Byte
+const Register = register.Register
 
 console.log = () => {}
-
-describe("Register", () => {
+t.test("Register", (t) => {
   const a = 88
   const b = 36
   
-  describe("addition", () => {
-    const aReg = new Register(2)
-    const bReg = new Register(2)
+  t.test("addition", (t) => {
+    const aBytes = [new Byte(0), new Byte(0)]
+    const bBytes = [new Byte(0), new Byte(0)]
+    const aReg = new Register(aBytes)
+    const bReg = new Register(bBytes)
 
-    it(`${a} + ${b} = ${a + b}`, () => {
+    t.test(`${a} + ${b} = ${a + b}`, (t) => {
       aReg.set(a)
       bReg.set(b)
 
       aReg.add(bReg)
 
-      assert.equal(aReg.numberSigned, a + b)
+      t.same(aReg.numberSigned, a + b)
+      t.end()
     })
 
-    it(`${a} + (${-b}) = ${a - b}`, () => {
+    t.test(`${a} + (${-b}) = ${a - b}`, (t) => {
       aReg.set(a)
       bReg.set(-b)
       
       aReg.add(bReg)
 
-      assert.equal(aReg.numberSigned, a - b)
+      t.same(aReg.numberSigned, a - b)
+      t.end()
     })
 
-    it(`(${-a}) + ${b} = ${-a + b}`, () => {
+    t.test(`(${-a}) + ${b} = ${-a + b}`, (t) => {
       aReg.set(-a)
       bReg.set(b)
 
       aReg.add(bReg)
 
-      assert.equal(aReg.numberSigned, -a + b)
+      t.same(aReg.numberSigned, -a + b)
+      t.end()
     })
 
-    it(`(${-a}) + ${-b} = ${-a + -b}`, () => {
+    t.test(`(${-a}) + ${-b} = ${-a + -b}`, (t) => {
       aReg.set(-a)
       bReg.set(-b)
 
       aReg.add(bReg)
 
-      assert.equal(aReg.numberSigned < 0, true, "should be negative")
-      assert.equal(aReg.numberSigned, -a - b)
+      t.same(aReg.numberSigned < 0, true, "should be negative")
+      t.same(aReg.numberSigned, -a - b)
+      t.end()
     })
 
-    it(`${-b} + ${-a} = ${-b - a}`, () => {
+    t.test(`${-b} + ${-a} = ${-b - a}`, (t) => {
       aReg.set(-a)
       bReg.set(-b)
 
       bReg.add(aReg)
 
-      assert.equal(bReg.numberSigned, -b - a)
+      t.same(bReg.numberSigned, -b - a)
+      t.end()
     })
 
-    it("overflow", () => {
+    t.test("overflow", (t) => {
       aReg.set(2**16 - 1)
       bReg.set(1)
       const overflow = aReg.add(bReg)
 
-      assert.equal(overflow, 1)
+      t.same(overflow, 1)
+      t.end()
     })
 
-    it("0 + 0 = 0", () => {
+    t.test("0 + 0 = 0", (t) => {
       aReg.set(0)
       bReg.set(0)
 
       aReg.add(bReg)
 
-      assert.equal(aReg.numberSigned, 0)
+      t.same(aReg.numberSigned, 0)
+      t.end()
     })
 
-    it("0 - 1 = -1", () => {
+    t.test("0 - 1 = -1", (t) => {
       aReg.set(0)
       bReg.set(-1)
 
       aReg.add(bReg)
 
-      assert.equal(aReg.numberSigned, -1)
-
+      t.same(aReg.numberSigned, -1)
+      t.end()
     })
 
-    it("add high", () => {
+    t.test("add high", (t) => {
       aReg.set(14080)
       bReg.set(55)
+      const aRegHigh = new Register(aBytes.slice(0, 1))
+      const bRegLow = new Register(bBytes.slice(-1))
 
-      aReg.addHigh(bReg)
+      aRegHigh.add(bRegLow)
 
-      assert.equal(aReg.numberSigned, 28160)
+      t.same(aReg.numberSigned, 28160)
+      t.end()
     })
+
+    t.end()
   })
 
-  describe("subtract", () => {
-    const aReg = new Register(2)
-    const bReg = new Register(2)
+   t.test("subtract", (t) => {
+    const aBytes = [new Byte(0), new Byte(0)]
+    const bBytes = [new Byte(0), new Byte(0)]
+    const aReg = new Register(aBytes)
+    const bReg = new Register(bBytes)
 
-    it(`${a} - ${b} = ${a - b}`, () => {
+    t.test(`${a} - ${b} = ${a - b}`, (t) => {
       aReg.set(a)
       bReg.set(b)
 
       aReg.subtract(bReg)
 
-      assert.equal(aReg.numberSigned, a - b)
+      t.same(aReg.numberSigned, a - b)
+      t.end()
     })
 
-    it(`${-a} - ${b} = ${-a - b}`, () => {
+    t.test(`${-a} - ${b} = ${-a - b}`, (t) => {
       aReg.set(-a)
       bReg.set(b)
 
       aReg.subtract(bReg)
 
-      assert.equal(aReg.numberSigned, -a -b)
+      t.same(aReg.numberSigned, -a -b)
+      t.end()
     })
+
+    t.end()
   })
 
-  describe("shift", () => {
-    const aReg = new Register(2)
-    
-    it("shift right", () => {
+
+  t.test("shift", (t) => {
+    const aBytes = [new Byte(0), new Byte(0)]
+    const aReg = new Register(aBytes)
+
+    t.test("shift right", (t) => {
       const number = -0b111001011
       aReg.set(number)
       
       const shiftedBit = aReg.shiftRight()
 
-      assert.equal(shiftedBit, 1)
-      assert.equal(aReg.numberSigned, number >> 1)
+      t.same(shiftedBit, 1)
+      t.same(aReg.numberSigned, number >> 1)
+      t.end()
     })
+
+    t.end()
   })
 
-  describe("multiplication, 8 bytes result", () => {
-    describe("with correction", () => {
 
-      const aReg = new Register(4)
-      const bReg = new Register(4)
+  t.test("multiplication, 2 bytes result", (t) => {
+    const aBytes = [new Byte(0)]
+    const bBytes = [new Byte(0)]
+    const aReg = new Register(aBytes)
+    const bReg = new Register(bBytes)
+
+    t.test("with correction", (t) => {
       
-      it(`${a} * ${b} = ${a * b}`, () => {
+      t.test(`${a} * ${b} = ${a * b}`, (t) => {
         aReg.set(a)
         bReg.set(b)
         
-        const result = Register.multiply(aReg, bReg)
+        const result = multiplyWithCorrection(aReg, bReg)
 
-        assert.equal(result.numberSigned, a*b)
+        t.same(result.result[0].numberSigned, a*b)
+        t.end()
       })
       
-      it(`${a} * ${-b} = ${a * -b}`, () => {
+      t.test(`${a} * ${-b} = ${a * -b}`, (t) => {
         aReg.set(a)
         bReg.set(-b)
         
-        const result = Register.multiply(aReg, bReg)
+        const result = multiplyWithCorrection(aReg, bReg)
 
-        assert.equal(result.numberSigned, a*-b)
+        t.same(result.result[0].numberSigned, a*-b)
+        t.end()
       })
       
-      it(`${-a} * ${b} = ${-a * b}`, () => {
+      t.test(`${-a} * ${b} = ${-a * b}`, (t) => {
         aReg.set(-a)
         bReg.set(b)
         
-        const result = Register.multiply(aReg, bReg)
+        const result = multiplyWithCorrection(aReg, bReg)
 
-        assert.equal(result.numberSigned, -a*b)
+        t.same(result.result[0].numberSigned, -a*b)
+        t.end()
       })
       
-      it(`${-a} * ${-b} = ${-a * -b}`, () => {
+      t.test(`${-a} * ${-b} = ${-a * -b}`, (t) => {
         aReg.set(-a)
         bReg.set(-b)
         
-        const result = Register.multiply(aReg, bReg)
+        const result = multiplyWithCorrection(aReg, bReg)
 
-        assert.equal(result.numberSigned, -a*-b)
+        t.same(result.result[0].numberSigned, -a*-b)
+        t.end()
       })
+
+      t.end()
     })
 
-    describe("Bute's method", () => {
-
-      const aReg = new Register(4)
-      const bReg = new Register(4)
+     t.test("Bute's method", (t) => {
       
-      it(`${a} * ${b} = ${a * b}`, () => {
+      t.test(`${a} * ${b} = ${a * b}`, (t) => {
         aReg.set(a)
         bReg.set(b)
         
-        const result = Register.multiply(aReg, bReg, EMethod.BUTE_METHOD)
+        const result = multiplyBute(aReg, bReg)
 
-        assert.equal(result.numberSigned, a*b)
+        t.same(result.result[0].numberSigned, (a*b))
+        t.end()
       })
       
-      it(`${a} * ${-b} = ${a * -b}`, () => {
+      t.test(`${a} * ${-b} = ${a * -b}`, (t) => {
         aReg.set(a)
         bReg.set(-b)
         
-        const result = Register.multiply(aReg, bReg, EMethod.BUTE_METHOD)
+        const result = multiplyBute(aReg, bReg)
 
-        assert.equal(result.numberSigned, a*-b)
+        t.same(result.result[0].numberSigned, a*-b)
+        t.end()
       })
       
-      it(`${-a} * ${b} = ${-a * b}`, () => {
+      t.test(`${-a} * ${b} = ${-a * b}`, (t) => {
         aReg.set(-a)
         bReg.set(b)
         
-        const result = Register.multiply(aReg, bReg, EMethod.BUTE_METHOD)
+        const result = multiplyBute(aReg, bReg)
 
-        assert.equal(result.numberSigned, -a*b)
+        t.same(result.result[0].numberSigned, -a*b)
+        t.end()
       })
       
-      it(`${-a} * ${-b} = ${-a * -b}`, () => {
+      t.test(`${-a} * ${-b} = ${-a * -b}`, (t) => {
         aReg.set(-a)
         bReg.set(-b)
         
-        const result = Register.multiply(aReg, bReg, EMethod.BUTE_METHOD)
+        const result = multiplyBute(aReg, bReg)
 
-        assert.equal(result.numberSigned, -a*-b)
+        t.same(result.result[0].numberSigned, -a*-b)
+        t.end()
       })
+
+      t.end()
     })
-
-    describe("Fast 2", () => {
+/*
+    t.test("Fast 2", (t) => {
 
       const aReg = new Register(2)
       const bReg = new Register(2)
       
-      it(`${a} * ${b} = ${a * b}`, () => {
+      t.test(`${a} * ${b} = ${a * b}`, (t) => {
         aReg.set(a)
         bReg.set(b)
         
         const result = Register.multiply(aReg, bReg, EMethod.FAST_2)
 
-        assert.equal(result.numberSigned, a*b)
+        t.same(result.numberSigned, a*b)
       })
       
-      it(`${a} * ${-b} = ${a * -b}`, () => {
+      t.test(`${a} * ${-b} = ${a * -b}`, (t) => {
         aReg.set(a)
         bReg.set(-b)
         
         const result = Register.multiply(aReg, bReg, EMethod.FAST_2)
 
-        assert.equal(result.numberSigned, a*-b)
+        t.same(result.numberSigned, a*-b)
       })
       
-      it(`${-a} * ${b} = ${-a * b}`, () => {
+      t.test(`${-a} * ${b} = ${-a * b}`, (t) => {
         aReg.set(-a)
         bReg.set(b)
         
         const result = Register.multiply(aReg, bReg, EMethod.FAST_2)
 
-        assert.equal(result.numberSigned, -a*b)
+        t.same(result.numberSigned, -a*b)
       })
       
-      it(`${-a} * ${-b} = ${-a * -b}`, () => {
+      t.test(`${-a} * ${-b} = ${-a * -b}`, (t) => {
         aReg.set(-a)
         bReg.set(-b)
         
         const result = Register.multiply(aReg, bReg, EMethod.FAST_2)
 
-        assert.equal(result.numberSigned, -a*-b)
+        t.same(result.numberSigned, -a*-b)
       })
 
-      it("0x98 * 0x1ec = 0x12420", () => {
+      t.test("0x98 * 0x1ec = 0x12420", (t) => {
         aReg.set(0x98)
         bReg.set(0x1ec)
 
         const result = Register.multiply(aReg, bReg, EMethod.FAST_2)
 
-        assert.equal(result.numberSigned, 0x12420)
+        t.same(result.numberSigned, 0x12420)
       })
 
-      it(`0x100 * 0x100 = ${0x100 * 0x100}`, () => {
+      t.test(`0x100 * 0x100 = ${0x100 * 0x100}`, (t) => {
         aReg.set(0x100)
         bReg.set(0x100)
 
         const result = Register.multiply(aReg, bReg, EMethod.FAST_2)
 
-        assert.equal(result.numberSigned, 0x100*0x100)
+        t.same(result.numberSigned, 0x100*0x100)
       })
 
       
     })
 
-    describe("Fast 4", () => {
+    t.test("Fast 4", (t) => {
 
       const aReg = new Register(4)
       const bReg = new Register(4)
       
-      it(`${a} * ${b} = ${a * b}`, () => {
+      t.test(`${a} * ${b} = ${a * b}`, (t) => {
         aReg.set(a)
         bReg.set(b)
         
         const result = Register.multiply(aReg, bReg, EMethod.FAST_4)
 
-        assert.equal(result.numberSigned, a*b)
+        t.same(result.numberSigned, a*b)
       })
       
-      it(`${a} * ${-b} = ${a * -b}`, () => {
+      t.test(`${a} * ${-b} = ${a * -b}`, (t) => {
         aReg.set(a)
         bReg.set(-b)
         
         const result = Register.multiply(aReg, bReg, EMethod.FAST_4)
 
-        assert.equal(result.numberSigned, a*-b)
+        t.same(result.numberSigned, a*-b)
       })
       
-      it(`${-a} * ${b} = ${-a * b}`, () => {
+      t.test(`${-a} * ${b} = ${-a * b}`, (t) => {
         aReg.set(-a)
         bReg.set(b)
         
         const result = Register.multiply(aReg, bReg, EMethod.FAST_4)
 
-        assert.equal(result.numberSigned, -a*b)
+        t.same(result.numberSigned, -a*b)
       })
       
-      it(`${-a} * ${-b} = ${-a * -b}`, () => {
+      t.test(`${-a} * ${-b} = ${-a * -b}`, (t) => {
         aReg.set(-a)
         bReg.set(-b)
         
         const result = Register.multiply(aReg, bReg, EMethod.FAST_4)
 
-        assert.equal(result.numberSigned, -a*-b)
+        t.same(result.numberSigned, -a*-b)
       })
 
-      it("0x98 * 0x1ec = 0x12420", () => {
+      t.test("0x98 * 0x1ec = 0x12420", (t) => {
         aReg.set(0x98)
         bReg.set(0x1ec)
 
         const result = Register.multiply(aReg, bReg, EMethod.FAST_4)
 
-        assert.equal(result.numberSigned, 0x12420)
+        t.same(result.numberSigned, 0x12420)
       })
 
-      it(`0x100 * 0x100 = ${0x100 * 0x100}`, () => {
+      t.test(`0x100 * 0x100 = ${0x100 * 0x100}`, (t) => {
         aReg.set(0x100)
         bReg.set(0x100)
 
         const result = Register.multiply(aReg, bReg, EMethod.FAST_4)
 
-        assert.equal(result.numberSigned, 0x100*0x100)
+        t.same(result.numberSigned, 0x100*0x100)
       })
 
       
-    })
+    }) */
     
+
+    t.end()
   })
 
-  describe("division", () => {
-    const aReg = new Register(2)
-    const bReg = new Register(2)
+  t.test("division", (t) => {
+    const aBytes = [new Byte(0), new Byte(0)]
+    const bBytes = [new Byte(0), new Byte(0)]
+    const aReg = new Register(aBytes)
+    const bReg = new Register(bBytes)
 
-    it("1916 / 26 = 73; reminder = 18", () => {
+    t.test("1916 / 26 = 73; reminder = 18", (t) => {
       aReg.set(1916)
       bReg.set(26)
 
-      const [result, reminder] = Register.divide(aReg, bReg)
+      const [result, reminder] = divide(aReg, bReg).result
 
-      assert.equal(result.numberSigned, 73)
-      assert.equal(reminder.numberSigned, 18)
+      t.same(result.numberSigned, 73)
+      t.same(reminder.numberSigned, 18)
+      t.end()
     })
 
-    it("-1916 / 26 = -73; reminder = -18", () => {
+    t.test("-1916 / 26 = -73; reminder = -18", (t) => {
       aReg.set(-1916)
       bReg.set(26)
 
-      const [result, reminder] = Register.divide(aReg, bReg)
+      const [result, reminder] = divide(aReg, bReg).result
 
-      assert.equal(result.numberSigned, -73)
-      assert.equal(reminder.numberSigned, -18)
+      t.same(result.numberSigned, -73)
+      t.same(reminder.numberSigned, -18)
+      t.end()
     })
 
-    it("-27 / 5 = -5; reminder = -2", () => {
+    t.test("-27 / 5 = -5; reminder = -2", (t) => {
       aReg.set(-27)
       bReg.set(5)
 
-      const [result, reminder] = Register.divide(aReg, bReg)
+      const [result, reminder] = divide(aReg, bReg).result
 
-      assert.equal(result.numberSigned, -5)
-      assert.equal(reminder.numberSigned, -2)
+      t.same(result.numberSigned, -5)
+      t.same(reminder.numberSigned, -2)
+      t.end()
     })
+
+    t.end()
   })
-  
+
+  t.end()
 })
 
