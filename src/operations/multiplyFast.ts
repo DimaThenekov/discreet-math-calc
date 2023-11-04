@@ -168,15 +168,15 @@ function shiftAddAction(result: Register, a: Register, negative: boolean, shiftB
   return operandDescriptions
 }
 
-const aBytes = Byte.fill(8)
-const bBytes = Byte.fill(4)
+// const aBytes = Byte.fill(8)
+// const bBytes = Byte.fill(4)
 
-const a = new Register(aBytes).set(0b10011_0000_000)
-const b = new Register(bBytes).set(0b11110_1011_100)
-const result = multiplyFast4(a, b)
+// const a = new Register(aBytes).set(0b10011_0000_000)
+// const b = new Register(bBytes).set(0b11110_1011_100)
+// const result = multiplyFast4(a, b)
 
-console.dir(result.steps, {depth: 4})
-console.log(result.result[0].formatBeauty("result"))
+// console.dir(result.steps, {depth: 4})
+// console.log(result.result[0].formatBeauty("result"))
 
 
 function validateInput(a: Register, b: Register) {
