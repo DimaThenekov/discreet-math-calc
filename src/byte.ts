@@ -1,6 +1,6 @@
 import _ from "lodash";
 
-export type ByteBinOpResult = {readonly carryOut: Bit, readonly result: Byte};
+export type ByteBinOpResult = { readonly carryOut: Bit; readonly result: Byte };
 
 export type ByteBinOp = (this: Byte, b: Byte, carryIn: Bit) => ByteBinOpResult;
 
@@ -13,10 +13,49 @@ declare global {
     /** Lowest bit has index 0 */
     getBit(index: number): Bit;
   }
+
+  interface Array<T> {
+    reverseIterator(): IterableIterator<T>;
+  }
 }
 
 Number.prototype.getBit = function getBit(index: number) {
   return +((this.valueOf() & (1 << index)) > 0) as Bit;
+};
+
+Array.prototype.reverseIterator = function reverseIterator<
+  T
+>(): IterableIterator<T> {
+  const array = this;
+  let index = array.length;
+  let done = false;
+
+  return {
+
+    next(): IteratorResult<T> {
+      // if not ran out of iterations
+      // decrement index
+      // otherwise set done to true
+      
+      if (!done) {
+        index -= 1;
+      }
+
+      if (index === 0) {
+        done = true
+      }
+
+      return {
+        value: array[index],
+        done
+      }
+    },
+
+    [Symbol.iterator]() {
+      return this
+    }
+  }
+
 };
 
 /**
@@ -111,18 +150,31 @@ export class Byte {
     return [carryBit, result];
   }
 
+  /**
+   * Performs bitwise not on a byte
+   */
+  not() {
+    this.set((~this.number) & Byte.MAX);
+  }
+
   add(byte: Byte, carryIn: Bit = 0): ByteBinOpResult {
     const result = this.number + byte.number + carryIn;
     const carryOut = result > Byte.MAX;
 
-    return {carryOut: +carryOut, result: this.set(result & Byte.MAX)} as ByteBinOpResult;
+    return {
+      carryOut: +carryOut,
+      result: this.set(result & Byte.MAX),
+    } as ByteBinOpResult;
   }
 
   subtract(byte: Byte, carryIn: Bit = 0): ByteBinOpResult {
     const result = this.number - byte.number - carryIn;
     const carryOut = result < 0;
 
-    return {carryOut: +carryOut, result: this.set(result & Byte.MAX)} as ByteBinOpResult;
+    return {
+      carryOut: +carryOut,
+      result: this.set(result & Byte.MAX),
+    } as ByteBinOpResult;
   }
 
   shiftRight(fill: Bit = this.sign) {
@@ -239,13 +291,13 @@ export class Byte {
   }
 
   static fill(amount: number): Byte[] {
-    const bytes: Byte[] = []
-    
+    const bytes: Byte[] = [];
+
     for (let i = 0; i < amount; i++) {
-      bytes.push(new Byte())
+      bytes.push(new Byte());
     }
 
-    return bytes
+    return bytes;
   }
 }
 

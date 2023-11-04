@@ -125,6 +125,14 @@ export class Register implements IRegister, ISnapshotable<Register> {
       .join(" ");
   }
 
+  /**
+   * Inverts sign of a number stored in register
+   */
+  neg() {
+    this.bytes.forEach(Byte.prototype.not)
+    this.add(new Register(Byte.fill(this.WIDTH)).set(1))
+  }
+
   shiftLeft(fill: Bit = 0) {
     for (let i = 0; i < this.bytes.length; i++) {
       fill = this.getByte(i)!.shiftLeft(fill);
