@@ -8,8 +8,6 @@ export const divide: IRegisterBinOp = function divide(dividendInput: Register, d
   const divider = new Register(dividerInput.snapshot().lowHalf)
   const currentReminderBytes = Byte.fill(dividendInput.WIDTH)
   const currentReminder = new RegisterWithCursor(currentReminderBytes).set(dividend.numberSigned)
-  const center = Math.floor(currentReminderBytes.length / 2);
-  currentReminder.cursorPosition = center * Byte.LENGTH
   const result = new Register(currentReminder.lowHalf)
   const reminder = new Register(currentReminder.highHalf)
   
@@ -51,8 +49,20 @@ export const divide: IRegisterBinOp = function divide(dividendInput: Register, d
     step.operandDescription.push(new OperandDescription(`R${stepNumber}`, reminder))
   }
 
+  const lastReminder = reminder.snapshot()
+
   // correction
-  if (reminder.sign != dividend.sign) {
+  // if negative
+  if ((lastReminder.number === 0n) && dividend.sign) {
+    const one = new Register(Byte.fill(result.WIDTH)).set(1)
+
+    if (result.sign) {
+      result.subtract(one)
+    } else {
+      result.add(one)
+    }
+    
+  } else if (lastReminder.sign != dividend.sign) {
     const correctionStep = new Step({title: "коррекция"})
     // currentReminder.shiftLeft()
 
@@ -117,18 +127,18 @@ function isDivisionValid(currentReminder: Register, dividendInput: Register, div
   return [dividend.sign != currentReminder.sign, semiFirstStep]
 }
 
-// const aBytes = Byte.fill(2)
-// const bBytes = Byte.fill(2)
+const aBytes = Byte.fill(2)
+const bBytes = Byte.fill(2)
 
-// const a = new Register(aBytes).set(1916)
-// const b = new Register(bBytes).set(-26)
-// const result = divide(a, b)
+const a = new Register(aBytes).set(-1272)
+const b = new Register(bBytes).set(12)
+const result = divide(a, b)
 
-// console.dir(result.steps, {
-//   depth: 5,
-// })
+console.dir(result.steps, {
+  depth: 5,
+})
 
-// console.log(result.result[0].formatBeauty("result"))
-// console.log(result.result[1].formatBeauty("reminder"))
+console.log(result.result[0].formatBeauty("result"))
+console.log(result.result[1].formatBeauty("reminder"))
 
-  
+

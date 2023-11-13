@@ -388,6 +388,8 @@ t.test("Register", (t) => {
     const bReg = new Register(Byte.fill(2))
 
     t.test("1911 / 91 = 21; reminder = 0", (t) => {
+      const aReg = new Register(Byte.fill(4))
+      const bREg = new Register(Byte.fill(2))
       aReg.set(1911)
       bReg.set(91)
 

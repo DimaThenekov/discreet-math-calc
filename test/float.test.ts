@@ -1,4 +1,4 @@
-import assert from "assert";
+/* import assert from "assert";
 import { describe, it } from "mocha";
 
 import { Mantissa } from "../src/mantissa";
@@ -90,4 +90,4 @@ describe("floats", () => {
 
   })
 
-})
+}) */

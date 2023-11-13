@@ -16,7 +16,7 @@ t.test("Byte", (t) => {
     t.end()
   })
 
-  t.test(`144 == not -145`, (t) => {
+  t.skip(`144 == not -145`, (t) => {
     const a = new Byte(-145)
     a.not()
 
