@@ -9,7 +9,7 @@ export const divide: IRegisterBinOp = function divide(dividendInput: Register, d
   const currentReminderBytes = Byte.fill(dividendInput.WIDTH)
   const currentReminder = new RegisterWithCursor(currentReminderBytes).set(dividend.numberSigned)
   const center = Math.floor(currentReminderBytes.length / 2);
-  currentReminder.cursorPosition = center
+  currentReminder.cursorPosition = center * Byte.LENGTH
   const result = new Register(currentReminder.lowHalf)
   const reminder = new Register(currentReminder.highHalf)
   
@@ -24,7 +24,7 @@ export const divide: IRegisterBinOp = function divide(dividendInput: Register, d
   steps.push(isCorrect[1])
   
   // start division
-  for (let i = 0; i < Byte.LENGTH - 1; i++) {
+  for (let i = 0; i < Byte.LENGTH * (dividend.WIDTH / 2) - 1; i++) {
     const stepNumber = i + 2
     const step = new Step({title: `step ${stepNumber}`})
     steps.push(step)
@@ -54,6 +54,7 @@ export const divide: IRegisterBinOp = function divide(dividendInput: Register, d
   // correction
   if (reminder.sign != dividend.sign) {
     const correctionStep = new Step({title: "коррекция"})
+    // currentReminder.shiftLeft()
 
     if (reminder.sign == divider.sign) {
       const subtraction = new Register(Byte.fill(divider.WIDTH)).set(0)

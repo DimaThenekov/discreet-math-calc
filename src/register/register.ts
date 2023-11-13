@@ -214,6 +214,9 @@ enum ESide {
 }
 
 export class RegisterWithCursor extends Register {
+  /**
+   * Measured in bits
+   */
   cursorPosition: number = 0;
   /**
    * On which side of character at `cursorPosition` to display cursor
