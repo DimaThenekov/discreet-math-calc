@@ -127,18 +127,18 @@ function isDivisionValid(currentReminder: Register, dividendInput: Register, div
   return [dividend.sign != currentReminder.sign, semiFirstStep]
 }
 
-const aBytes = Byte.fill(2)
-const bBytes = Byte.fill(2)
+// const aBytes = Byte.fill(2)
+// const bBytes = Byte.fill(2)
 
-const a = new Register(aBytes).set(-1272)
-const b = new Register(bBytes).set(12)
-const result = divide(a, b)
+// const a = new Register(aBytes).set(-1272)
+// const b = new Register(bBytes).set(12)
+// const result = divide(a, b)
 
-console.dir(result.steps, {
-  depth: 5,
-})
+// console.dir(result.steps, {
+//   depth: 5,
+// })
 
-console.log(result.result[0].formatBeauty("result"))
-console.log(result.result[1].formatBeauty("reminder"))
+// console.log(result.result[0].formatBeauty("result"))
+// console.log(result.result[1].formatBeauty("reminder"))
 
 
