@@ -49,20 +49,8 @@ export const divide: IRegisterBinOp = function divide(dividendInput: Register, d
     step.operandDescription.push(new OperandDescription(`R${stepNumber}`, reminder))
   }
 
-  const lastReminder = reminder.snapshot()
-
   // correction
-  // if negative
-  if ((lastReminder.number === 0n) && dividend.sign) {
-    const one = new Register(Byte.fill(result.WIDTH)).set(1)
-
-    if (result.sign) {
-      result.subtract(one)
-    } else {
-      result.add(one)
-    }
-    
-  } else if (lastReminder.sign != dividend.sign) {
+  if (reminder.sign != dividendInput.sign) {
     const correctionStep = new Step({title: "коррекция"})
     // currentReminder.shiftLeft()
 
@@ -80,6 +68,24 @@ export const divide: IRegisterBinOp = function divide(dividendInput: Register, d
 
     correctionStep.operandDescription.push(new OperandDescription("Остаток", reminder, "остаток после применения коррекции"))
     steps.push(correctionStep)
+  }
+
+  if (reminder.numberSigned == divider.numberSigned) {
+    reminder.subtract(divider)
+  } else if (reminder.numberSigned == -divider.numberSigned) {
+    reminder.add(divider)
+  }
+
+  // if negative
+  if ((reminder.number === 0n) && dividendInput.sign) {
+    const one = new Register(Byte.fill(result.WIDTH)).set(1)
+
+    if (result.sign) {
+      result.subtract(one)
+    } else {
+      result.add(one)
+    }
+    
   }
 
   return {result: [result, reminder], steps}
@@ -127,16 +133,16 @@ function isDivisionValid(currentReminder: Register, dividendInput: Register, div
   return [dividend.sign != currentReminder.sign, semiFirstStep]
 }
 
-// const aBytes = Byte.fill(2)
-// const bBytes = Byte.fill(2)
+// const aBytes = Byte.fill(4)
+// const bBytes = Byte.fill(4)
 
-// const a = new Register(aBytes).set(-1272)
+// const a = new Register(aBytes).set(1272)
 // const b = new Register(bBytes).set(12)
 // const result = divide(a, b)
 
-// console.dir(result.steps, {
-//   depth: 5,
-// })
+// // console.dir(result.steps, {
+// //   depth: 5,
+// // })
 
 // console.log(result.result[0].formatBeauty("result"))
 // console.log(result.result[1].formatBeauty("reminder"))
