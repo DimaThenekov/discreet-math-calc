@@ -384,10 +384,19 @@ t.test("Register", (t) => {
   })
 
   t.test("division", (t) => {
-    const aBytes = [new Byte(0), new Byte(0)]
-    const bBytes = [new Byte(0), new Byte(0)]
-    const aReg = new Register(aBytes)
-    const bReg = new Register(bBytes)
+    const aReg = new Register(Byte.fill(2))
+    const bReg = new Register(Byte.fill(2))
+
+    t.test("1911 / 91 = 21; reminder = 0", (t) => {
+      aReg.set(1911)
+      bReg.set(91)
+
+      const [result, reminder] = divide(aReg, bReg).result
+
+      t.same(result.numberSigned, 21)
+      t.same(reminder.numberSigned, 0)
+      t.end()
+    })
 
     t.test("1916 / 26 = 73; reminder = 18", (t) => {
       aReg.set(1916)
