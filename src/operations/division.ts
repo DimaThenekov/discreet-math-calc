@@ -70,22 +70,42 @@ export const divide: IRegisterBinOp = function divide(dividendInput: Register, d
     steps.push(correctionStep)
   }
 
-  if (reminder.numberSigned == divider.numberSigned) {
-    reminder.subtract(divider)
-  } else if (reminder.numberSigned == -divider.numberSigned) {
-    reminder.add(divider)
+  // special correction when reminder contains divider
+  if (absBigInt(reminder.numberSigned) == absBigInt(divider.numberSigned)) {
+    const specialCaseStep = new Step({title: "Особый случай коррекции"})
+    specialCaseStep.withComments("Коррекция остатка, совпадающего с делителем")
+
+    const isNegativeOperand = reminder.sign == divider.sign
+    const operand =  isNegativeOperand ? divider.snapshot().neg() : divider;
+    const message = isNegativeOperand ? "Вычитаем делитель" : "Складываем с делителем"
+
+    specialCaseStep.operandDescription.push(new OperandDescription("B", operand, message))
+
+    reminder.add(operand)
+
+    specialCaseStep.operandDescription.push(new OperandDescription("R", currentReminder))
+    steps.push(specialCaseStep)
   }
 
   // if negative
   if ((reminder.number === 0n) && dividendInput.sign) {
+    const resultCorrectionStep = new Step({title: "Коррекция частного"})
+    resultCorrectionStep.withComments("Выполняем коррекцию частного, так как остаток равен 0")
+
     const one = new Register(Byte.fill(result.WIDTH)).set(1)
 
+    resultCorrectionStep.operandDescription.push(new OperandDescription("1", one))
+
+    const message = result.sign ? "Результат отрицательный: Вычитаем один" : "Результат положительный: Складываем один"
+    resultCorrectionStep.withComments(message)
+    
     if (result.sign) {
       result.subtract(one)
     } else {
       result.add(one)
     }
-    
+
+    resultCorrectionStep.operandDescription.push(new OperandDescription("R", currentReminder, "Результат после финальной коррекции"))
   }
 
   return {result: [result, reminder], steps}
@@ -133,11 +153,19 @@ function isDivisionValid(currentReminder: Register, dividendInput: Register, div
   return [dividend.sign != currentReminder.sign, semiFirstStep]
 }
 
-// const aBytes = Byte.fill(4)
-// const bBytes = Byte.fill(4)
+function absBigInt(num: BigInt) {
+  if (num < 0n) {
+    return -num
+  }
 
-// const a = new Register(aBytes).set(1272)
-// const b = new Register(bBytes).set(12)
+  return num
+}
+
+// const aBytes = Byte.fill(2)
+// const bBytes = Byte.fill(2)
+
+// const a = new Register(aBytes).set(-1272)
+// const b = new Register(bBytes).set(-12)
 // const result = divide(a, b)
 
 // // console.dir(result.steps, {

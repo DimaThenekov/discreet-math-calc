@@ -433,6 +433,39 @@ t.test("Register", (t) => {
       t.end()
     })
 
+    t.test("1272 / 12 = 106; reminder = 0", (t) => {
+      aReg.set(1272)
+      bReg.set(12)
+
+      const [result, reminder] = divide(aReg, bReg).result
+
+      t.same(result.numberSigned, 106)
+      t.same(reminder.numberSigned, 0)
+      t.end()
+    })
+
+    t.test("-1272 / 12 = -106; reminder = 0", (t) => {
+      aReg.set(-1272)
+      bReg.set(12)
+
+      const [result, reminder] = divide(aReg, bReg).result
+
+      t.same(result.numberSigned, -106)
+      t.same(reminder.numberSigned, 0)
+      t.end()
+    })
+
+    t.test("-1272 / -12 = 106; reminder = 0", (t) => {
+      aReg.set(-1272)
+      bReg.set(-12)
+
+      const [result, reminder] = divide(aReg, bReg).result
+
+      t.same(result.numberSigned, 106)
+      t.same(reminder.numberSigned, 0)
+      t.end()
+    })
+
     t.end()
   })
 
