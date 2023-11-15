@@ -18,7 +18,7 @@ export const multiplyFast2: IRegisterBinOp = function multiplyFast2(a: Register,
     b.shiftRight()
 
     // console.log(`action ${action.toString(2)} ${correction}:`)
-    currentStep.withComments(`action ${action.toString}; correction: ${correction}`)
+    currentStep.withComments(`action ${action.toString(2)}; correction: ${correction}`)
 
     switch (action) {
       case 0b00:
